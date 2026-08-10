@@ -39,8 +39,12 @@
 	}
 </script>
 
-<form id="volunteer-form" class="h-full overflow-y-auto px-4 py-4" onsubmit={submit}>
-	<div class="space-y-4 pb-8">
+<form
+	id="volunteer-form"
+	class="h-full overflow-y-auto px-4 py-4 md:px-6 md:py-6 lg:px-8"
+	onsubmit={submit}
+>
+	<div class="mx-auto max-w-5xl pb-8">
 		<div class="border-b border-[var(--color-border)] pb-4">
 			<button
 				type="button"
@@ -72,24 +76,24 @@
 				</div>
 			{/if}
 		</div>
-		<label class="block">
-			<span class="mb-1.5 block text-sm font-medium"
-				>Họ tên <span class="text-[var(--color-danger)]">*</span></span
-			>
-			<input
-				bind:value={volunteerStore.form.full_name}
-				required
-				class="h-11 w-full rounded-md border-[var(--color-border-strong)]"
-			/>
-		</label>
-		<label class="block">
-			<span class="mb-1.5 block text-sm font-medium">Pháp danh</span>
-			<input
-				bind:value={volunteerStore.form.dharma_name}
-				class="h-11 w-full rounded-md border-[var(--color-border-strong)]"
-			/>
-		</label>
-		<div class="grid grid-cols-2 gap-3">
+		<div class="mt-5 grid gap-4 md:grid-cols-2 md:gap-x-6 md:gap-y-5">
+			<label class="block">
+				<span class="mb-1.5 block text-sm font-medium"
+					>Họ tên <span class="text-[var(--color-danger)]">*</span></span
+				>
+				<input
+					bind:value={volunteerStore.form.full_name}
+					required
+					class="h-11 w-full rounded-md border-[var(--color-border-strong)]"
+				/>
+			</label>
+			<label class="block">
+				<span class="mb-1.5 block text-sm font-medium">Pháp danh</span>
+				<input
+					bind:value={volunteerStore.form.dharma_name}
+					class="h-11 w-full rounded-md border-[var(--color-border-strong)]"
+				/>
+			</label>
 			<label class="block">
 				<span class="mb-1.5 block text-sm font-medium">Ngày sinh</span>
 				<input
@@ -106,28 +110,26 @@
 					class="h-11 w-full rounded-md border-[var(--color-border-strong)]"
 				/>
 			</label>
-		</div>
-		<label class="block">
-			<span class="mb-1.5 block text-sm font-medium">Nơi sinh hoạt</span>
-			<input
-				bind:value={volunteerStore.form.cultivation_place}
-				class="h-11 w-full rounded-md border-[var(--color-border-strong)]"
-			/>
-		</label>
-		<label class="block">
-			<span class="mb-1.5 block text-sm font-medium">Phân ban</span>
-			<DepartmentCombobox bind:value={volunteerStore.form.department} />
-		</label>
-		<label class="block">
-			<span class="mb-1.5 block text-sm font-medium">Ảnh đại diện (URL)</span>
-			<input
-				bind:value={volunteerStore.form.avatar_url}
-				type="url"
-				placeholder="https://..."
-				class="h-11 w-full rounded-md border-[var(--color-border-strong)]"
-			/>
-		</label>
-		<div class="grid grid-cols-2 gap-3">
+			<label class="block">
+				<span class="mb-1.5 block text-sm font-medium">Nơi sinh hoạt</span>
+				<input
+					bind:value={volunteerStore.form.cultivation_place}
+					class="h-11 w-full rounded-md border-[var(--color-border-strong)]"
+				/>
+			</label>
+			<label class="block">
+				<span class="mb-1.5 block text-sm font-medium">Phân ban</span>
+				<DepartmentCombobox bind:value={volunteerStore.form.department} />
+			</label>
+			<label class="block md:col-span-2">
+				<span class="mb-1.5 block text-sm font-medium">Ảnh đại diện (URL)</span>
+				<input
+					bind:value={volunteerStore.form.avatar_url}
+					type="url"
+					placeholder="https://..."
+					class="h-11 w-full rounded-md border-[var(--color-border-strong)]"
+				/>
+			</label>
 			<label class="block">
 				<span class="mb-1.5 block text-sm font-medium"
 					>Ngày đến <span class="text-[var(--color-danger)]">*</span></span
@@ -148,13 +150,13 @@
 					class="h-11 w-full rounded-md border-[var(--color-border-strong)]"
 				/>
 			</label>
+			<label class="block md:col-span-2">
+				<span class="mb-1.5 block text-sm font-medium">Ghi chú</span>
+				<textarea
+					bind:value={volunteerStore.form.notes}
+					rows="4"
+					class="w-full resize-y rounded-md border-[var(--color-border-strong)]"></textarea>
+			</label>
 		</div>
-		<label class="block">
-			<span class="mb-1.5 block text-sm font-medium">Ghi chú</span>
-			<textarea
-				bind:value={volunteerStore.form.notes}
-				rows="4"
-				class="w-full resize-y rounded-md border-[var(--color-border-strong)]"></textarea>
-		</label>
 	</div>
 </form>

@@ -6,7 +6,7 @@
 </script>
 
 <nav
-	class="z-20 border-t border-[var(--color-border)] bg-[rgb(255_255_255_/_0.96)] px-2 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] backdrop-blur"
+	class="z-20 border-t border-[var(--color-border)] bg-[rgb(255_255_255_/_0.96)] px-2 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] backdrop-blur md:hidden"
 >
 	<div class="grid grid-cols-3 gap-1">
 		{#each bottomNavItems as item (item.name)}

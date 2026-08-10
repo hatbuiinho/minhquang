@@ -77,102 +77,280 @@
 	}
 </script>
 
-<section class="h-full overflow-y-auto px-4 py-4">
-	<div class="mb-4 flex items-center justify-between gap-3">
-		<div>
-			<p class="text-sm font-medium">Danh mục phân ban</p>
-			<p class="mt-0.5 text-xs text-[var(--color-text-secondary)]">
-				{departmentStore.items.length} phân ban
-			</p>
-		</div>
-		<button
-			type="button"
-			class="grid h-10 w-10 place-items-center rounded-md bg-[var(--color-primary)] text-white"
-			aria-label={showCreate ? 'Đóng biểu mẫu' : 'Thêm phân ban'}
-			onclick={() => (showCreate = !showCreate)}
-		>
-			<span class={showCreate ? 'icon-[lucide--x] h-5 w-5' : 'icon-[lucide--plus] h-5 w-5'} aria-hidden="true"></span>
-		</button>
-	</div>
-
-	{#if showCreate}
-		<form class="mb-4 flex gap-2" onsubmit={create}>
-			<input
-				bind:value={createName}
-				required
-				maxlength="60"
-				placeholder="Tên phân ban"
-				aria-label="Tên phân ban mới"
-				class="h-11 min-w-0 flex-1 rounded-md border-[var(--color-border-strong)]"
-			/>
-			<button
-				type="submit"
-				disabled={departmentStore.isSaving || !createName.trim()}
-				class="grid h-11 w-11 place-items-center rounded-md bg-[var(--color-primary)] text-white disabled:opacity-50"
-				aria-label="Lưu phân ban"
-			><span class="icon-[lucide--check] h-5 w-5" aria-hidden="true"></span></button>
-		</form>
-	{/if}
-
-	<div class="relative mb-3">
-		<span class="icon-[lucide--search] pointer-events-none absolute top-3.5 left-3 h-4 w-4 text-[var(--color-text-muted)]" aria-hidden="true"></span>
-		<input
-			bind:value={departmentStore.query}
-			type="search"
-			placeholder="Tìm phân ban"
-			aria-label="Tìm phân ban"
-			class="h-11 w-full rounded-md border-[var(--color-border-strong)] pl-9"
-			oninput={search}
-		/>
-	</div>
-
-	<div class="mb-4 grid grid-cols-3 rounded-md bg-[var(--color-surface-muted)] p-1">
-		{#each filters as filter (filter.value)}
+<section class="h-full overflow-y-auto px-4 py-4 md:px-6 md:py-6 lg:px-8">
+	<div class="mx-auto max-w-[1200px]">
+		<div class="mb-4 flex items-center justify-between gap-3">
+			<div>
+				<p class="text-sm font-medium">Danh mục phân ban</p>
+				<p class="mt-0.5 text-xs text-[var(--color-text-secondary)]">
+					{departmentStore.items.length} phân ban
+				</p>
+			</div>
 			<button
 				type="button"
-				class={[
-					'h-9 rounded text-xs font-semibold',
-					departmentStore.filter === filter.value
-						? 'bg-[var(--color-surface)] text-[var(--color-primary-dark)] shadow-sm'
-						: 'text-[var(--color-text-secondary)]'
-				]}
-				onclick={() => changeFilter(filter.value)}>{filter.label}</button>
-		{/each}
-	</div>
-
-	{#if departmentStore.isLoading && departmentStore.items.length === 0}
-		<div class="py-16"><LoadingIndicator label="Đang tải phân ban..." /></div>
-	{:else if departmentStore.items.length === 0}
-		<div class="py-16 text-center">
-			<span class="icon-[lucide--inbox] mx-auto block h-8 w-8 text-[var(--color-text-muted)]" aria-hidden="true"></span>
-			<p class="mt-2 text-sm text-[var(--color-text-secondary)]">Không có phân ban phù hợp</p>
+				class="grid h-10 w-10 place-items-center rounded-md bg-[var(--color-primary)] text-white"
+				aria-label={showCreate ? 'Đóng biểu mẫu' : 'Thêm phân ban'}
+				onclick={() => (showCreate = !showCreate)}
+			>
+				<span
+					class={showCreate ? 'icon-[lucide--x] h-5 w-5' : 'icon-[lucide--plus] h-5 w-5'}
+					aria-hidden="true"
+				></span>
+			</button>
 		</div>
-	{:else}
-		<ul class="divide-y divide-[var(--color-border)] border-y border-[var(--color-border)]">
-			{#each departmentStore.items as item (item.id)}
-				<li class="py-3">
-					{#if editingID === item.id}
-						<form class="flex gap-2" onsubmit={rename}>
-							<input bind:value={editingName} required maxlength="60" aria-label="Tên phân ban" class="h-10 min-w-0 flex-1 rounded-md border-[var(--color-border-strong)]" />
-							<button type="submit" disabled={departmentStore.isSaving || !editingName.trim()} class="grid h-10 w-10 place-items-center rounded-md bg-[var(--color-primary)] text-white disabled:opacity-50" aria-label="Lưu tên"><span class="icon-[lucide--check] h-4 w-4" aria-hidden="true"></span></button>
-							<button type="button" class="grid h-10 w-10 place-items-center rounded-md border border-[var(--color-border-strong)]" aria-label="Huỷ sửa" onclick={() => (editingID = '')}><span class="icon-[lucide--x] h-4 w-4" aria-hidden="true"></span></button>
-						</form>
-					{:else}
-						<div class="flex items-center gap-3">
-							<div class="min-w-0 flex-1">
-								<div class="flex items-center gap-2">
-									<p class="truncate text-sm font-semibold">{item.name}</p>
-									<span class={['shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold', item.active ? 'bg-[var(--color-primary-soft)] text-[var(--color-primary-dark)]' : 'bg-[var(--color-surface-muted)] text-[var(--color-text-muted)]']}>{item.active ? 'Đang dùng' : 'Đã ẩn'}</span>
+
+		{#if showCreate}
+			<form class="mb-4 flex max-w-xl gap-2" onsubmit={create}>
+				<input
+					bind:value={createName}
+					required
+					maxlength="60"
+					placeholder="Tên phân ban"
+					aria-label="Tên phân ban mới"
+					class="h-11 min-w-0 flex-1 rounded-md border-[var(--color-border-strong)]"
+				/>
+				<button
+					type="submit"
+					disabled={departmentStore.isSaving || !createName.trim()}
+					class="grid h-11 w-11 place-items-center rounded-md bg-[var(--color-primary)] text-white disabled:opacity-50"
+					aria-label="Lưu phân ban"
+					><span class="icon-[lucide--check] h-5 w-5" aria-hidden="true"></span></button
+				>
+			</form>
+		{/if}
+
+		<div class="mb-4 flex flex-col gap-3 md:flex-row md:items-center">
+			<div class="relative md:min-w-0 md:flex-1">
+				<span
+					class="pointer-events-none absolute top-3.5 left-3 icon-[lucide--search] h-4 w-4 text-[var(--color-text-muted)]"
+					aria-hidden="true"
+				></span>
+				<input
+					bind:value={departmentStore.query}
+					type="search"
+					placeholder="Tìm phân ban"
+					aria-label="Tìm phân ban"
+					class="h-11 w-full rounded-md border-[var(--color-border-strong)] pl-9"
+					oninput={search}
+				/>
+			</div>
+
+			<div
+				class="grid grid-cols-3 rounded-md bg-[var(--color-surface-muted)] p-1 md:w-[320px] md:shrink-0"
+			>
+				{#each filters as filter (filter.value)}
+					<button
+						type="button"
+						class={[
+							'h-9 rounded text-xs font-semibold',
+							departmentStore.filter === filter.value
+								? 'bg-[var(--color-surface)] text-[var(--color-primary-dark)] shadow-sm'
+								: 'text-[var(--color-text-secondary)]'
+						]}
+						onclick={() => changeFilter(filter.value)}>{filter.label}</button
+					>
+				{/each}
+			</div>
+		</div>
+
+		{#if departmentStore.isLoading && departmentStore.items.length === 0}
+			<div class="py-16"><LoadingIndicator label="Đang tải phân ban..." /></div>
+		{:else if departmentStore.items.length === 0}
+			<div class="py-16 text-center">
+				<span
+					class="mx-auto icon-[lucide--inbox] block h-8 w-8 text-[var(--color-text-muted)]"
+					aria-hidden="true"
+				></span>
+				<p class="mt-2 text-sm text-[var(--color-text-secondary)]">Không có phân ban phù hợp</p>
+			</div>
+		{:else}
+			<ul
+				class="divide-y divide-[var(--color-border)] border-y border-[var(--color-border)] md:hidden"
+			>
+				{#each departmentStore.items as item (item.id)}
+					<li class="py-3">
+						{#if editingID === item.id}
+							<form class="flex gap-2" onsubmit={rename}>
+								<input
+									bind:value={editingName}
+									required
+									maxlength="60"
+									aria-label="Tên phân ban"
+									class="h-10 min-w-0 flex-1 rounded-md border-[var(--color-border-strong)]"
+								/>
+								<button
+									type="submit"
+									disabled={departmentStore.isSaving || !editingName.trim()}
+									class="grid h-10 w-10 place-items-center rounded-md bg-[var(--color-primary)] text-white disabled:opacity-50"
+									aria-label="Lưu tên"
+									><span class="icon-[lucide--check] h-4 w-4" aria-hidden="true"></span></button
+								>
+								<button
+									type="button"
+									class="grid h-10 w-10 place-items-center rounded-md border border-[var(--color-border-strong)]"
+									aria-label="Huỷ sửa"
+									onclick={() => (editingID = '')}
+									><span class="icon-[lucide--x] h-4 w-4" aria-hidden="true"></span></button
+								>
+							</form>
+						{:else}
+							<div class="flex items-center gap-3">
+								<div class="min-w-0 flex-1">
+									<div class="flex items-center gap-2">
+										<p class="truncate text-sm font-semibold">{item.name}</p>
+										<span
+											class={[
+												'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold',
+												item.active
+													? 'bg-[var(--color-primary-soft)] text-[var(--color-primary-dark)]'
+													: 'bg-[var(--color-surface-muted)] text-[var(--color-text-muted)]'
+											]}>{item.active ? 'Đang dùng' : 'Đã ẩn'}</span
+										>
+									</div>
+									<p class="mt-1 text-xs text-[var(--color-text-secondary)]">
+										{item.volunteer_count} hồ sơ
+									</p>
 								</div>
-								<p class="mt-1 text-xs text-[var(--color-text-secondary)]">{item.volunteer_count} hồ sơ</p>
+								<button
+									type="button"
+									class="grid h-9 w-9 place-items-center rounded-md text-[var(--color-text-secondary)]"
+									aria-label="Sửa tên"
+									title="Sửa tên"
+									onclick={() => beginEdit(item)}
+									><span class="icon-[lucide--pencil] h-4 w-4" aria-hidden="true"></span></button
+								>
+								<button
+									type="button"
+									class="grid h-9 w-9 place-items-center rounded-md text-[var(--color-text-secondary)]"
+									aria-label={item.active ? 'Ngừng sử dụng' : 'Mở lại'}
+									title={item.active ? 'Ngừng sử dụng' : 'Mở lại'}
+									onclick={() => void toggle(item)}
+									><span
+										class={item.active
+											? 'icon-[lucide--eye-off] h-4 w-4'
+											: 'icon-[lucide--eye] h-4 w-4'}
+										aria-hidden="true"
+									></span></button
+								>
+								<button
+									type="button"
+									disabled={item.volunteer_count > 0}
+									class="grid h-9 w-9 place-items-center rounded-md text-[var(--color-danger)] disabled:opacity-30"
+									aria-label="Xoá phân ban"
+									title={item.volunteer_count > 0
+										? 'Không thể xoá phân ban đang có hồ sơ'
+										: 'Xoá phân ban'}
+									onclick={() => void remove(item)}
+									><span class="icon-[lucide--trash-2] h-4 w-4" aria-hidden="true"></span></button
+								>
 							</div>
-							<button type="button" class="grid h-9 w-9 place-items-center rounded-md text-[var(--color-text-secondary)]" aria-label="Sửa tên" title="Sửa tên" onclick={() => beginEdit(item)}><span class="icon-[lucide--pencil] h-4 w-4" aria-hidden="true"></span></button>
-							<button type="button" class="grid h-9 w-9 place-items-center rounded-md text-[var(--color-text-secondary)]" aria-label={item.active ? 'Ngừng sử dụng' : 'Mở lại'} title={item.active ? 'Ngừng sử dụng' : 'Mở lại'} onclick={() => void toggle(item)}><span class={item.active ? 'icon-[lucide--eye-off] h-4 w-4' : 'icon-[lucide--eye] h-4 w-4'} aria-hidden="true"></span></button>
-							<button type="button" disabled={item.volunteer_count > 0} class="grid h-9 w-9 place-items-center rounded-md text-[var(--color-danger)] disabled:opacity-30" aria-label="Xoá phân ban" title={item.volunteer_count > 0 ? 'Không thể xoá phân ban đang có hồ sơ' : 'Xoá phân ban'} onclick={() => void remove(item)}><span class="icon-[lucide--trash-2] h-4 w-4" aria-hidden="true"></span></button>
-						</div>
-					{/if}
-				</li>
-			{/each}
-		</ul>
-	{/if}
+						{/if}
+					</li>
+				{/each}
+			</ul>
+			<div
+				class="hidden overflow-hidden rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] md:block"
+			>
+				<table class="w-full table-fixed border-collapse text-left text-sm">
+					<thead
+						class="border-b border-[var(--color-border)] bg-[var(--color-surface-muted)] text-xs font-semibold text-[var(--color-text-secondary)]"
+					>
+						<tr>
+							<th class="w-[45%] px-4 py-3">Tên phân ban</th>
+							<th class="w-[18%] px-4 py-3">Số hồ sơ</th>
+							<th class="w-[18%] px-4 py-3">Trạng thái</th>
+							<th class="w-[19%] px-4 py-3 text-right">Thao tác</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-[var(--color-border)]">
+						{#each departmentStore.items as item (item.id)}
+							<tr>
+								{#if editingID === item.id}
+									<td colspan="4" class="px-4 py-3">
+										<form class="flex max-w-2xl gap-2" onsubmit={rename}>
+											<input
+												bind:value={editingName}
+												required
+												maxlength="60"
+												aria-label="Tên phân ban"
+												class="h-10 min-w-0 flex-1 rounded-md border-[var(--color-border-strong)]"
+											/>
+											<button
+												type="submit"
+												disabled={departmentStore.isSaving || !editingName.trim()}
+												class="grid h-10 w-10 place-items-center rounded-md bg-[var(--color-primary)] text-white disabled:opacity-50"
+												aria-label="Lưu tên"
+												><span class="icon-[lucide--check] h-4 w-4" aria-hidden="true"
+												></span></button
+											>
+											<button
+												type="button"
+												class="grid h-10 w-10 place-items-center rounded-md border border-[var(--color-border-strong)]"
+												aria-label="Huỷ sửa"
+												onclick={() => (editingID = '')}
+												><span class="icon-[lucide--x] h-4 w-4" aria-hidden="true"></span></button
+											>
+										</form>
+									</td>
+								{:else}
+									<td class="truncate px-4 py-3 font-semibold">{item.name}</td>
+									<td class="px-4 py-3 text-[var(--color-text-secondary)]"
+										>{item.volunteer_count} hồ sơ</td
+									>
+									<td class="px-4 py-3"
+										><span
+											class={[
+												'inline-flex rounded px-2 py-1 text-xs font-semibold',
+												item.active
+													? 'bg-[var(--color-primary-soft)] text-[var(--color-primary-dark)]'
+													: 'bg-[var(--color-surface-muted)] text-[var(--color-text-muted)]'
+											]}>{item.active ? 'Đang dùng' : 'Đã ẩn'}</span
+										></td
+									>
+									<td class="px-4 py-2">
+										<div class="flex justify-end gap-1">
+											<button
+												type="button"
+												class="grid h-9 w-9 place-items-center rounded-md text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-muted)]"
+												aria-label="Sửa tên"
+												title="Sửa tên"
+												onclick={() => beginEdit(item)}
+												><span class="icon-[lucide--pencil] h-4 w-4" aria-hidden="true"
+												></span></button
+											>
+											<button
+												type="button"
+												class="grid h-9 w-9 place-items-center rounded-md text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-muted)]"
+												aria-label={item.active ? 'Ngừng sử dụng' : 'Mở lại'}
+												title={item.active ? 'Ngừng sử dụng' : 'Mở lại'}
+												onclick={() => void toggle(item)}
+												><span
+													class={item.active
+														? 'icon-[lucide--eye-off] h-4 w-4'
+														: 'icon-[lucide--eye] h-4 w-4'}
+													aria-hidden="true"
+												></span></button
+											>
+											<button
+												type="button"
+												disabled={item.volunteer_count > 0}
+												class="grid h-9 w-9 place-items-center rounded-md text-[var(--color-danger)] hover:bg-[var(--color-danger-soft)] disabled:opacity-30"
+												aria-label="Xoá phân ban"
+												title={item.volunteer_count > 0
+													? 'Không thể xoá phân ban đang có hồ sơ'
+													: 'Xoá phân ban'}
+												onclick={() => void remove(item)}
+												><span class="icon-[lucide--trash-2] h-4 w-4" aria-hidden="true"
+												></span></button
+											>
+										</div>
+									</td>
+								{/if}
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		{/if}
+	</div>
 </section>

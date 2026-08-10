@@ -15,7 +15,9 @@
 	import Toast from '$lib/ui/Toast.svelte';
 	import { toastStore } from '$lib/ui/toast-store.svelte';
 	import BottomNav from './BottomNav.svelte';
+	import DesktopSidebar from './DesktopSidebar.svelte';
 	import TopBar from './TopBar.svelte';
+	import VolunteerRouteModal from './VolunteerRouteModal.svelte';
 
 	let route = $derived(router.current);
 	let isFormRoute = $derived(route.name === 'volunteer-new' || route.name === 'volunteer-edit');
@@ -42,23 +44,39 @@
 	<LoginScreen />
 {:else}
 	<div
-		class="mx-auto flex min-h-screen max-w-lg flex-col bg-[var(--color-bg)] text-[var(--color-text)] shadow-[0_0_0_1px_var(--color-border)]"
+		class="mx-auto flex h-dvh max-w-[1600px] bg-[var(--color-bg)] text-[var(--color-text)] md:border-x md:border-[var(--color-border)]"
 	>
-		<TopBar {route} />
-		<section class="relative flex-1 overflow-hidden">
-			{#if route.name === 'volunteers'}
-				<VolunteerListScreen />
-			{:else if route.name === 'volunteer-detail' && route.volunteerId}
-				{#key route.volunteerId}<VolunteerDetailScreen volunteerId={route.volunteerId} />{/key}
-			{:else if route.name === 'volunteer-new' || route.name === 'volunteer-edit'}
-				{#key route.path}<VolunteerFormScreen volunteerId={route.volunteerId} />{/key}
-			{:else if route.name === 'users'}
-				<UsersScreen />
-			{:else if route.name === 'departments'}
-				<DepartmentsScreen />
-			{/if}
-		</section>
-		{#if !isFormRoute}<BottomNav {route} />{/if}
+		<DesktopSidebar {route} />
+		<div class="flex min-w-0 flex-1 flex-col">
+			<TopBar {route} />
+			<section class="relative min-h-0 flex-1 overflow-hidden">
+				{#if route.name === 'volunteers' || route.name.startsWith('volunteer-')}
+					<div class={route.name === 'volunteers' ? 'h-full' : 'hidden h-full md:block'}>
+						<VolunteerListScreen />
+					</div>
+					{#if route.name === 'volunteer-detail' && route.volunteerId}
+						<VolunteerRouteModal {route}>
+							{#snippet children()}
+								{#key route.volunteerId}<VolunteerDetailScreen
+										volunteerId={route.volunteerId ?? ''}
+									/>{/key}
+							{/snippet}
+						</VolunteerRouteModal>
+					{:else if route.name === 'volunteer-new' || route.name === 'volunteer-edit'}
+						<VolunteerRouteModal {route}>
+							{#snippet children()}
+								{#key route.path}<VolunteerFormScreen volunteerId={route.volunteerId} />{/key}
+							{/snippet}
+						</VolunteerRouteModal>
+					{/if}
+				{:else if route.name === 'users'}
+					<UsersScreen />
+				{:else if route.name === 'departments'}
+					<DepartmentsScreen />
+				{/if}
+			</section>
+			{#if !isFormRoute}<BottomNav {route} />{/if}
+		</div>
 	</div>
 {/if}
 
