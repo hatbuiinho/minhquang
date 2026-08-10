@@ -1,0 +1,3 @@
+ALTER TABLE volunteers
+ADD COLUMN IF NOT EXISTS department varchar(60) NOT NULL DEFAULT '',
+ADD COLUMN IF NOT EXISTS notes text NOT NULL DEFAULT '';

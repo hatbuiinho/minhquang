@@ -1,1085 +1,305 @@
 openapi: 3.1.0
 info:
-  title: Reminder API
-  version: 0.1.0
-  description: Event management API for the Reminder app.
+  title: Minh Quang Personnel API
+  version: 1.0.0
+  description: API quản lý tài khoản quản trị và Huynh đệ công quả tạm thời.
 servers:
   - url: http://localhost:8080
-    description: Local web development
-  - url: http://10.0.2.2:8080
-    description: Android emulator development
 tags:
-  - name: Health
-  - name: Accounts
-  - name: Events
-  - name: Devices
-  - name: Reminders
-  - name: App Updates
+  - name: Authentication
+  - name: Users
+  - name: Volunteers
+  - name: Departments
 paths:
   /healthz:
     get:
-      tags:
-        - Health
-      summary: Check API health
-      operationId: getHealth
+      summary: Kiểm tra trạng thái API
       responses:
         "200":
-          description: API is healthy.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HealthResponse"
-  /api/events:
-    get:
-      tags:
-        - Events
-      summary: List events for the current user
-      operationId: listEvents
-      parameters:
-        - $ref: "#/components/parameters/UserIDHeader"
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
-        - name: cursor
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Cursor returned from the previous list response.
-      responses:
-        "200":
-          description: Events ordered by created_at descending.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/EventListResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalError"
+          description: API hoạt động
+  /api/auth/login:
     post:
-      tags:
-        - Events
-      summary: Create an event
-      operationId: createEvent
-      parameters:
-        - $ref: "#/components/parameters/UserIDHeader"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/EventCreateRequest"
-            examples:
-              default:
-                value:
-                  title: Renew passport
-                  description: Prepare documents
-                  starts_at: "2026-09-01T09:00:00+07:00"
-                  timezone: Asia/Ho_Chi_Minh
-                  reminders:
-                    - offset_minutes: 1440
-                    - offset_minutes: 10080
-      responses:
-        "201":
-          description: Event created.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Event"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalError"
-  /api/events/{event_id}:
-    get:
-      tags:
-        - Events
-      summary: Get an event
-      operationId: getEvent
-      parameters:
-        - $ref: "#/components/parameters/UserIDHeader"
-        - $ref: "#/components/parameters/EventIDPath"
-      responses:
-        "200":
-          description: Event found.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Event"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalError"
-    patch:
-      tags:
-        - Events
-      summary: Update an event
-      operationId: updateEvent
-      parameters:
-        - $ref: "#/components/parameters/UserIDHeader"
-        - $ref: "#/components/parameters/EventIDPath"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/EventUpdateRequest"
-            examples:
-              statusOnly:
-                value:
-                  status: archived
-              editEvent:
-                value:
-                  title: Passport appointment
-                  description: Bring original documents
-                  starts_at: "2026-09-01T10:00:00+07:00"
-                  timezone: Asia/Ho_Chi_Minh
-                  status: active
-                  reminders:
-                    - offset_minutes: 60
-      responses:
-        "200":
-          description: Event updated.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Event"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalError"
-    delete:
-      tags:
-        - Events
-      summary: Delete an event
-      operationId: deleteEvent
-      parameters:
-        - $ref: "#/components/parameters/UserIDHeader"
-        - $ref: "#/components/parameters/EventIDPath"
-      responses:
-        "204":
-          description: Event deleted.
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalError"
-  /api/devices:
-    post:
-      tags:
-        - Devices
-      summary: Register or refresh a push notification device token
-      operationId: registerDevice
-      parameters:
-        - $ref: "#/components/parameters/UserIDHeader"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/DeviceRegisterRequest"
-            examples:
-              android:
-                value:
-                  platform: android
-                  push_token: fcm-token
-      responses:
-        "200":
-          description: Device token registered.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/UserDevice"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalError"
-  /api/users:
-    get:
-      tags:
-        - Accounts
-      summary: List active users
-      operationId: listUsers
-      responses:
-        "200":
-          description: Active users.
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - users
-                properties:
-                  users:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/User"
-    post:
-      tags:
-        - Accounts
-      summary: Create a user
-      operationId: createUser
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UserCreateRequest"
-      responses:
-        "201":
-          description: User created.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-  /api/groups:
-    get:
-      tags:
-        - Accounts
-      summary: List active groups
-      operationId: listGroups
-      responses:
-        "200":
-          description: Active groups.
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - groups
-                properties:
-                  groups:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Group"
-    post:
-      tags:
-        - Accounts
-      summary: Create a group
-      operationId: createGroup
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/GroupCreateRequest"
-      responses:
-        "201":
-          description: Group created.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Group"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-  /api/groups/{group_id}/members:
-    post:
-      tags:
-        - Accounts
-      summary: Add a user to a group
-      operationId: addGroupMember
-      parameters:
-        - name: group_id
-          in: path
-          required: true
-          schema:
-            type: string
+      tags: [Authentication]
+      summary: Đăng nhập
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required:
-                - user_id
-              additionalProperties: false
+              required: [username, password]
               properties:
-                user_id:
-                  type: string
+                username: { type: string }
+                password: { type: string, format: password }
+      responses:
+        "200":
+          description: Đăng nhập thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/auth/me:
+    get:
+      tags: [Authentication]
+      summary: Lấy tài khoản hiện tại
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Tài khoản hiện tại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Đăng xuất
+      security: [{ bearerAuth: [] }]
       responses:
         "204":
-          description: Member added.
-        "400":
-          $ref: "#/components/responses/BadRequest"
-  /api/reminders/upcoming:
+          description: Đã đăng xuất
+  /api/users:
     get:
-      tags:
-        - Reminders
-      summary: List upcoming reminder jobs for the current user
-      operationId: listUpcomingReminders
-      parameters:
-        - $ref: "#/components/parameters/UserIDHeader"
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 50
+      tags: [Users]
+      summary: Danh sách tài khoản quản trị
+      security: [{ bearerAuth: [] }]
       responses:
         "200":
-          description: Upcoming pending reminders ordered by scheduled time.
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - reminders
-                properties:
-                  reminders:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/ReminderJob"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalError"
-  /api/reminder-jobs:
-    get:
-      tags:
-        - Reminders
-      summary: List due in-app reminder jobs for the current user
-      operationId: listReminderInbox
-      parameters:
-        - $ref: "#/components/parameters/UserIDHeader"
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 50
-      responses:
-        "200":
-          description: Due reminders that have not been dismissed.
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - reminders
-                properties:
-                  reminders:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/ReminderJob"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalError"
-  /api/reminder-jobs/{reminder_job_id}/read:
+          description: Danh sách tài khoản
     post:
-      tags:
-        - Reminders
-      summary: Mark a reminder job as read
-      operationId: markReminderJobRead
-      parameters:
-        - $ref: "#/components/parameters/UserIDHeader"
-        - name: reminder_job_id
-          in: path
-          required: true
-          schema:
-            type: string
-            example: rj_abc123
-      responses:
-        "200":
-          description: Reminder job after read state is applied.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ReminderJob"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalError"
-  /api/reminder-jobs/{reminder_job_id}/dismiss:
-    post:
-      tags:
-        - Reminders
-      summary: Dismiss a reminder job from the in-app inbox
-      operationId: dismissReminderJob
-      parameters:
-        - $ref: "#/components/parameters/UserIDHeader"
-        - name: reminder_job_id
-          in: path
-          required: true
-          schema:
-            type: string
-            example: rj_abc123
-      responses:
-        "200":
-          description: Reminder job after dismiss state is applied.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ReminderJob"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalError"
-  /api/reminder-jobs/{reminder_job_id}/snooze:
-    post:
-      tags:
-        - Reminders
-      summary: Snooze a reminder job and create a new pending reminder
-      operationId: snoozeReminderJob
-      parameters:
-        - $ref: "#/components/parameters/UserIDHeader"
-        - name: reminder_job_id
-          in: path
-          required: true
-          schema:
-            type: string
-            example: rj_abc123
+      tags: [Users]
+      summary: Tạo tài khoản quản trị
+      security: [{ bearerAuth: [] }]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ReminderSnoozeRequest"
+              type: object
+              required: [username, display_name, password]
+              properties:
+                username: { type: string }
+                display_name: { type: string }
+                password: { type: string, minLength: 8 }
       responses:
-        "200":
-          description: New snoozed reminder job.
+        "201":
+          description: Tài khoản đã tạo
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ReminderJob"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalError"
-  /api/app-updates/android/latest:
+                $ref: "#/components/schemas/User"
+  /api/volunteers:
     get:
-      tags:
-        - App Updates
-      summary: Check latest self-hosted Android web asset update
-      operationId: getLatestAndroidAppUpdate
+      tags: [Volunteers]
+      summary: Danh sách hồ sơ công quả
+      security: [{ bearerAuth: [] }]
       parameters:
-        - name: channel
+        - name: q
           in: query
-          required: false
-          schema:
-            type: string
-            default: dev
-        - name: current_version
+          schema: { type: string }
+          description: Tìm theo họ tên, pháp danh, số điện thoại hoặc nơi sinh hoạt.
+        - name: status
           in: query
-          required: false
-          schema:
-            type: string
-        - name: native_version
-          in: query
-          required: false
-          schema:
-            type: string
-            default: "1.0"
+          schema: { type: string, enum: [active, departed] }
       responses:
         "200":
-          description: Latest OTA metadata. `available=false` means no compatible update.
+          description: Danh sách hồ sơ
+    post:
+      tags: [Volunteers]
+      summary: Thêm hồ sơ công quả
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VolunteerInput"
+      responses:
+        "201":
+          description: Hồ sơ đã tạo
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AppUpdate"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalError"
+                $ref: "#/components/schemas/Volunteer"
+  /api/volunteers/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Volunteers]
+      summary: Xem hồ sơ
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Chi tiết hồ sơ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Volunteer"
+    put:
+      tags: [Volunteers]
+      summary: Cập nhật hồ sơ
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VolunteerInput"
+      responses:
+        "200":
+          description: Hồ sơ đã cập nhật
+    delete:
+      tags: [Volunteers]
+      summary: Xoá hồ sơ
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204":
+          description: Đã xoá hồ sơ
+  /api/volunteer-options/departments:
+    get:
+      tags: [Volunteers]
+      summary: Gợi ý các phân ban đã sử dụng
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 20, default: 10 }
+      responses:
+        "200":
+          description: Danh sách phân ban đang sử dụng
+  /api/departments:
+    get:
+      tags: [Departments]
+      summary: Danh sách phân ban
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: active
+          in: query
+          schema: { type: string, enum: [all, "true", "false"], default: all }
+      responses:
+        "200":
+          description: Danh sách phân ban và số hồ sơ đang sử dụng
+    post:
+      tags: [Departments]
+      summary: Thêm phân ban
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 60 }
+      responses:
+        "201":
+          description: Phân ban đã tạo
+  /api/departments/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    put:
+      tags: [Departments]
+      summary: Đổi tên phân ban
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Phân ban đã cập nhật }
+    delete:
+      tags: [Departments]
+      summary: Xoá phân ban chưa có hồ sơ sử dụng
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Đã xoá phân ban }
+        "409": { description: Phân ban đang có hồ sơ sử dụng }
+  /api/departments/{id}/status:
+    patch:
+      tags: [Departments]
+      summary: Bật hoặc ngừng sử dụng phân ban
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Trạng thái đã cập nhật }
 components:
-  parameters:
-    UserIDHeader:
-      name: X-User-ID
-      in: header
-      required: false
-      description: Development user id. Defaults to `local-user` when omitted.
-      schema:
-        type: string
-        example: local-user
-    EventIDPath:
-      name: event_id
-      in: path
-      required: true
-      schema:
-        type: string
-        example: evt_abc123
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
   responses:
-    BadRequest:
-      description: Request validation failed.
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/ErrorResponse"
-    NotFound:
-      description: Event not found.
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/ErrorResponse"
-    InternalError:
-      description: Unexpected server error.
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Chưa đăng nhập hoặc phiên đăng nhập hết hạn
   schemas:
-    HealthResponse:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - ok
-    EventStatus:
-      type: string
-      enum:
-        - active
-        - archived
-        - cancelled
-    AudienceType:
-      type: string
-      enum:
-        - self
-        - selected_users
-        - selected_groups
-        - all_users
-    RecipientSourceType:
-      type: string
-      enum:
-        - self
-        - user
-        - group
-        - all_users
-    ReminderJobStatus:
-      type: string
-      enum:
-        - pending
-        - processing
-        - sent
-        - cancelled
-        - failed
-    ReminderImportance:
-      type: string
-      enum:
-        - normal
-        - urgent
-    DevicePlatform:
-      type: string
-      enum:
-        - android
-        - ios
-        - web
-    AppUpdate:
-      type: object
-      required:
-        - available
-      properties:
-        available:
-          type: boolean
-        platform:
-          type: string
-          example: android
-        channel:
-          type: string
-          example: dev
-        version:
-          type: string
-          example: "2026.08.03.001"
-        url:
-          type: string
-          example: "http://localhost:8080/ota/android/dev/2026.08.03.001.zip"
-        checksum:
-          type: string
-        mandatory:
-          type: boolean
-        min_native_version:
-          type: string
-          example: "1.0"
-        max_native_version:
-          type: string
-          example: "1.0"
-        notes:
-          type: string
-    Event:
-      type: object
-      required:
-        - id
-        - user_id
-        - title
-        - description
-        - starts_at
-        - timezone
-        - status
-        - audience_type
-        - reminder_generation
-        - reminders
-        - created_at
-        - updated_at
-      properties:
-        id:
-          type: string
-          example: evt_abc123
-        user_id:
-          type: string
-          example: local-user
-        title:
-          type: string
-          example: Renew passport
-        description:
-          type: string
-          example: Prepare documents
-        starts_at:
-          type: string
-          format: date-time
-          description: Stored and returned as UTC by the backend.
-          example: "2026-09-01T02:00:00Z"
-        timezone:
-          type: string
-          example: Asia/Ho_Chi_Minh
-        status:
-          $ref: "#/components/schemas/EventStatus"
-        audience_type:
-          $ref: "#/components/schemas/AudienceType"
-        reminder_generation:
-          type: integer
-          minimum: 1
-          example: 1
-        reminders:
-          type: array
-          items:
-            $ref: "#/components/schemas/ReminderRule"
-        recipients:
-          type: array
-          items:
-            $ref: "#/components/schemas/EventRecipient"
-        created_at:
-          type: string
-          format: date-time
-          example: "2026-08-02T04:40:13Z"
-        updated_at:
-          type: string
-          format: date-time
-          example: "2026-08-02T04:40:13Z"
-    EventListResponse:
-      type: object
-      required:
-        - events
-        - has_more
-      properties:
-        events:
-          type: array
-          items:
-            $ref: "#/components/schemas/Event"
-        next_cursor:
-          type: string
-          description: Pass this value as `cursor` to load the next page.
-        has_more:
-          type: boolean
-          example: true
-    EventCreateRequest:
-      type: object
-      required:
-        - title
-        - starts_at
-      additionalProperties: false
-      properties:
-        title:
-          type: string
-          minLength: 1
-        description:
-          type: string
-          default: ""
-        starts_at:
-          type: string
-          format: date-time
-          description: RFC3339 timestamp. Offset is accepted and normalized to UTC.
-        timezone:
-          type: string
-          default: UTC
-        reminders:
-          type: array
-          items:
-            $ref: "#/components/schemas/ReminderRuleInput"
-          default: []
-        audience_type:
-          $ref: "#/components/schemas/AudienceType"
-        recipient_user_ids:
-          type: array
-          items:
-            type: string
-          default: []
-        recipient_group_ids:
-          type: array
-          items:
-            type: string
-          default: []
-    EventUpdateRequest:
-      type: object
-      additionalProperties: false
-      properties:
-        title:
-          type: string
-          minLength: 1
-        description:
-          type: string
-        starts_at:
-          type: string
-          format: date-time
-          description: RFC3339 timestamp. Offset is accepted and normalized to UTC.
-        timezone:
-          type: string
-        status:
-          $ref: "#/components/schemas/EventStatus"
-        reminders:
-          type: array
-          description: Replaces all reminder rules for the event when present.
-          items:
-            $ref: "#/components/schemas/ReminderRuleInput"
-        audience_type:
-          $ref: "#/components/schemas/AudienceType"
-        recipient_user_ids:
-          type: array
-          items:
-            type: string
-        recipient_group_ids:
-          type: array
-          items:
-            type: string
-    ReminderRule:
-      type: object
-      required:
-        - id
-        - event_id
-        - offset_minutes
-        - enabled
-        - channel
-        - importance
-        - created_at
-        - updated_at
-      properties:
-        id:
-          type: string
-          example: rr_abc123
-        event_id:
-          type: string
-          example: evt_abc123
-        offset_minutes:
-          type: integer
-          minimum: 0
-          description: Minutes before the event start time. `0` means at event time.
-          example: 1440
-        enabled:
-          type: boolean
-          example: true
-        channel:
-          type: string
-          enum:
-            - push
-          example: push
-        importance:
-          $ref: "#/components/schemas/ReminderImportance"
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-    ReminderRuleInput:
-      type: object
-      required:
-        - offset_minutes
-      additionalProperties: false
-      properties:
-        offset_minutes:
-          type: integer
-          minimum: 0
-          description: Minutes before the event start time. `0` means at event time.
-          example: 1440
-        enabled:
-          type: boolean
-          default: true
-        channel:
-          type: string
-          enum:
-            - push
-          default: push
-        importance:
-          $ref: "#/components/schemas/ReminderImportance"
-          default: normal
-    EventRecipient:
-      type: object
-      required:
-        - event_id
-        - user_id
-        - source_type
-        - created_at
-      properties:
-        event_id:
-          type: string
-        user_id:
-          type: string
-        source_type:
-          $ref: "#/components/schemas/RecipientSourceType"
-        source_id:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-    UserCreateRequest:
-      type: object
-      required:
-        - name
-      additionalProperties: false
-      properties:
-        id:
-          type: string
-          description: Optional stable development user id.
-        name:
-          type: string
-          minLength: 1
-        email:
-          type: string
     User:
       type: object
-      required:
-        - id
-        - name
-        - email
-        - active
-        - created_at
-        - updated_at
+      required: [id, username, display_name, role, active, created_at, updated_at]
       properties:
-        id:
-          type: string
-        name:
-          type: string
-        email:
-          type: string
-        active:
-          type: boolean
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-    GroupCreateRequest:
+        id: { type: string }
+        username: { type: string }
+        display_name: { type: string }
+        role: { type: string, enum: [admin] }
+        active: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    LoginResult:
       type: object
-      required:
-        - name
-      additionalProperties: false
+      required: [token, expires_at, user]
       properties:
-        name:
-          type: string
-          minLength: 1
-        description:
-          type: string
-    Group:
+        token: { type: string }
+        expires_at: { type: string, format: date-time }
+        user: { $ref: "#/components/schemas/User" }
+    VolunteerInput:
       type: object
-      required:
-        - id
-        - name
-        - description
-        - active
-        - created_at
-        - updated_at
+      required: [full_name, arrival_date]
       properties:
-        id:
+        full_name: { type: string }
+        dharma_name: { type: string }
+        birth_date:
           type: string
-        name:
-          type: string
-        description:
-          type: string
-        active:
-          type: boolean
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-    ReminderJob:
-      type: object
-      required:
-        - id
-        - user_id
-        - event_id
-        - reminder_rule_id
-        - event_title
-        - event_starts_at
-        - offset_minutes
-        - channel
-        - importance
-        - status
-        - scheduled_at
-        - reminder_generation
-        - created_at
-        - updated_at
-      properties:
-        id:
-          type: string
-          example: rj_abc123
-        user_id:
-          type: string
-          example: local-user
-        event_id:
-          type: string
-          example: evt_abc123
-        reminder_rule_id:
-          type: string
-          example: rr_abc123
-        event_title:
-          type: string
-          example: Renew passport
-        event_starts_at:
-          type: string
-          format: date-time
-          example: "2026-09-01T02:00:00Z"
-        offset_minutes:
-          type: integer
-          minimum: 0
-          example: 1440
-        channel:
-          type: string
-          enum:
-            - push
-          example: push
-        importance:
-          $ref: "#/components/schemas/ReminderImportance"
-        status:
-          $ref: "#/components/schemas/ReminderJobStatus"
-        scheduled_at:
-          type: string
-          format: date-time
-          example: "2026-08-31T02:00:00Z"
-        sent_at:
-          type:
-            - string
-            - "null"
-          format: date-time
-        read_at:
-          type:
-            - string
-            - "null"
-          format: date-time
-        dismissed_at:
-          type:
-            - string
-            - "null"
-          format: date-time
-        snoozed_from_id:
-          type: string
-          description: Original reminder job id when this job was created by snooze.
-        snoozed_at:
-          type:
-            - string
-            - "null"
-          format: date-time
-        cancelled_at:
-          type:
-            - string
-            - "null"
-          format: date-time
-        reminder_generation:
-          type: integer
-          minimum: 1
-          example: 1
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-    ReminderSnoozeRequest:
-      type: object
-      required:
-        - delay_minutes
-      additionalProperties: false
-      properties:
-        delay_minutes:
-          type: integer
-          minimum: 1
-          maximum: 10080
-          description: Minutes from now before the reminder should fire again.
-          example: 15
-    DeviceRegisterRequest:
-      type: object
-      required:
-        - platform
-        - push_token
-      additionalProperties: false
-      properties:
-        platform:
-          $ref: "#/components/schemas/DevicePlatform"
-        push_token:
-          type: string
-          minLength: 1
-          example: fcm-token
-    UserDevice:
-      type: object
-      required:
-        - id
-        - user_id
-        - platform
-        - push_token
-        - enabled
-        - last_seen_at
-        - created_at
-        - updated_at
-      properties:
-        id:
-          type: string
-          example: dev_abc123
-        user_id:
-          type: string
-          example: local-user
-        platform:
-          $ref: "#/components/schemas/DevicePlatform"
-        push_token:
-          type: string
-          example: fcm-token
-        enabled:
-          type: boolean
-          example: true
-        last_seen_at:
-          type: string
-          format: date-time
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-    ErrorResponse:
-      type: object
-      required:
-        - error
-      properties:
-        error:
-          type: object
-          required:
-            - code
-            - message
+          description: Ngày hoặc năm sinh dạng văn bản tự do.
+        cultivation_place: { type: string }
+        phone: { type: string }
+        department: { type: string, maxLength: 60 }
+        notes: { type: string }
+        avatar_url: { type: string, format: uri }
+        arrival_date: { type: string, format: date }
+        departure_date: { type: string, format: date }
+    Volunteer:
+      allOf:
+        - $ref: "#/components/schemas/VolunteerInput"
+        - type: object
+          required: [id, status, created_at, updated_at]
           properties:
-            code:
-              type: string
-              examples:
-                - invalid_input
-                - invalid_json
-                - invalid_status
-                - not_found
-                - internal_error
-            message:
-              type: string
+            id: { type: string }
+            department_id: { type: string }
+            status: { type: string, enum: [active, departed] }
+            created_at: { type: string, format: date-time }
+            updated_at: { type: string, format: date-time }
+    Department:
+      type: object
+      required: [id, name, active, volunteer_count, created_at, updated_at]
+      properties:
+        id: { type: string }
+        name: { type: string, maxLength: 60 }
+        active: { type: boolean }
+        volunteer_count: { type: integer, minimum: 0 }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }

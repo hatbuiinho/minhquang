@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-	appId: 'com.ttpq.reminder',
-	appName: 'Nhắc việc',
+	appId: 'vn.minhquang.personnel',
+	appName: 'Nhân sự Minh Quang',
 	webDir: 'build',
 	android: {
 		allowMixedContent: true

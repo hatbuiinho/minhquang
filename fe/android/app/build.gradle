@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.ttpq.reminder"
+    namespace = "vn.minhquang.personnel"
     compileSdk = rootProject.ext.compileSdkVersion
     def releaseStoreFile = System.getenv("ANDROID_KEYSTORE_FILE")
     def releaseStorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
@@ -10,7 +10,7 @@ android {
     def hasReleaseSigning = releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
 
     defaultConfig {
-        applicationId "com.ttpq.reminder"
+        applicationId "vn.minhquang.personnel"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -65,9 +65,9 @@ apply from: 'capacitor.build.gradle'
 
 try {
     def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
+    if (servicesJSON.exists() && System.getenv("ENABLE_FIREBASE") == "true") {
         apply plugin: 'com.google.gms.google-services'
     }
 } catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+    logger.info("Google services plugin is disabled. Push Notifications won't work")
 }

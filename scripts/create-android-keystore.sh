@@ -2,7 +2,7 @@
 set -euo pipefail
 
 keystore_file="${ANDROID_KEYSTORE_FILE:-fe/android/app/release.keystore}"
-key_alias="${ANDROID_KEY_ALIAS:-reminder-release}"
+key_alias="${ANDROID_KEY_ALIAS:-minhquang-release}"
 
 if ! command -v keytool >/dev/null 2>&1; then
 	printf '%s\n' "keytool is required. Install or select a JDK before creating the keystore." >&2
@@ -51,7 +51,7 @@ keytool -genkeypair \
 	-keyalg RSA \
 	-keysize 2048 \
 	-validity 10000 \
-	-dname "CN=Reminder, OU=Mobile, O=Reminder, L=Ho Chi Minh, ST=Ho Chi Minh, C=VN"
+	-dname "CN=Minh Quang, OU=Mobile, O=Thien Vien Minh Quang, L=Ho Chi Minh, ST=Ho Chi Minh, C=VN"
 
 printf '\n%s\n' "Keystore created: $keystore_file"
 printf '%s\n' "Add these values to .env:"

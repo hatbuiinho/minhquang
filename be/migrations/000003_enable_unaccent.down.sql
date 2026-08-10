@@ -1,0 +1,1 @@
+-- Keep unaccent because other database objects may also depend on this shared extension.

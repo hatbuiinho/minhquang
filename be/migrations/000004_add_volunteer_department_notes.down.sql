@@ -1,0 +1,3 @@
+ALTER TABLE volunteers
+DROP COLUMN IF EXISTS notes,
+DROP COLUMN IF EXISTS department;

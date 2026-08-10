@@ -78,3 +78,22 @@ func TestRequestLogSkipsHealthAndOptions(t *testing.T) {
 		t.Fatalf("expected no request log, got %q", logs.String())
 	}
 }
+
+func TestCORSAllowsVolunteerUpdate(t *testing.T) {
+	handler := withCORS(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		t.Fatal("preflight request should not reach the next handler")
+	}))
+	request := httptest.NewRequest(http.MethodOptions, "/api/volunteers/vol_123", nil)
+	request.Header.Set("Origin", "http://localhost:5174")
+	request.Header.Set("Access-Control-Request-Method", http.MethodPut)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("expected status %d, got %d", http.StatusNoContent, response.Code)
+	}
+	if !strings.Contains(response.Header().Get("Access-Control-Allow-Methods"), http.MethodPut) {
+		t.Fatalf("expected PUT in allowed methods, got %q", response.Header().Get("Access-Control-Allow-Methods"))
+	}
+}

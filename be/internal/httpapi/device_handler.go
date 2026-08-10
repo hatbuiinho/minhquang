@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"reminder/be/internal/device"
+	"minhquang/be/internal/device"
 )
 
 type DeviceHandler struct {
@@ -37,7 +37,7 @@ func (h *DeviceHandler) register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	item, err := h.devices.Register(r.Context(), device.RegisterInput{
-		UserID:    userID(r),
+		UserID:    currentUser(r.Context()).ID,
 		Platform:  payload.Platform,
 		PushToken: payload.PushToken,
 	})

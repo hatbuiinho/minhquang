@@ -1,4 +1,4 @@
-# Reminder API
+# Minh Quang Personnel API
 
 ## Development
 
@@ -24,13 +24,14 @@ Start the API:
 air
 ```
 
-If `DATABASE_URL` is not set, the API falls back to the in-memory event store.
+Set `INITIAL_ADMIN_USERNAME` and `INITIAL_ADMIN_PASSWORD` before the first start.
+If `DATABASE_URL` is not set, the API falls back to in-memory stores for local development.
 
 ## Verification
 
 ```sh
 gofmt -w ./cmd ./internal
 go test ./...
-go build -o /tmp/reminder-api ./cmd/api
-go build -o /tmp/reminder-migrate ./cmd/migrate
+go build -o /tmp/minhquang-api ./cmd/api
+go build -o /tmp/minhquang-migrate ./cmd/migrate
 ```

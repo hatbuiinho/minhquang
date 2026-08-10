@@ -37,7 +37,7 @@ be-test:
 
 .PHONY: be-build
 be-build:
-	cd be && go build -o /tmp/reminder-api ./cmd/api
+	cd be && go build -o /tmp/minhquang-api ./cmd/api
 
 .PHONY: be-check
 be-check: be-test be-build

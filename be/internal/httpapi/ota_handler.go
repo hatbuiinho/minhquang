@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"reminder/be/internal/ota"
+	"minhquang/be/internal/ota"
 )
 
 type OTAHandler struct {

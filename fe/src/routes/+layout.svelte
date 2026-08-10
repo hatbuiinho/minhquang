@@ -34,14 +34,14 @@
 </script>
 
 <svelte:head>
-	<title>Nhắc việc</title>
-	<meta name="description" content="Ứng dụng quản lý sự kiện và nhắc hẹn." />
+	<title>Nhân sự Minh Quang</title>
+	<meta name="description" content="Ứng dụng quản lý nhân sự Thiền Viện Minh Quang." />
 	<meta name="theme-color" content="#2f6f63" />
 	<meta name="mobile-web-app-capable" content="yes" />
 	<meta name="apple-mobile-web-app-capable" content="yes" />
 	<meta name="apple-mobile-web-app-status-bar-style" content="default" />
-	<meta name="apple-mobile-web-app-title" content="Nhắc việc" />
-	<meta name="application-name" content="Nhắc việc" />
+	<meta name="apple-mobile-web-app-title" content="Minh Quang" />
+	<meta name="application-name" content="Nhân sự Minh Quang" />
 	<link rel="icon" href="/icons/favicon-32.png" sizes="32x32" type="image/png" />
 	<link rel="icon" href="/icons/icon-192.png" sizes="192x192" type="image/png" />
 	<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />

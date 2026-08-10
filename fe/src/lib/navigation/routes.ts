@@ -1,82 +1,56 @@
-export type MainRouteName = 'events' | 'calendar' | 'reminders' | 'settings';
-export type DetailRouteName = 'event-detail' | 'event-new' | 'event-edit';
-export type RouteName = MainRouteName | DetailRouteName;
+export type MainRouteName = 'volunteers' | 'departments' | 'users';
+export type RouteName = MainRouteName | 'volunteer-detail' | 'volunteer-new' | 'volunteer-edit';
 
 export type AppRoute = {
 	name: RouteName;
 	path: string;
 	title: string;
-	eventId?: string;
+	volunteerId?: string;
 };
 
-export type BottomNavItem = {
-	name: MainRouteName;
-	path: string;
-	label: string;
-	icon: string;
-};
-
-export const bottomNavItems: BottomNavItem[] = [
-	{ name: 'events', path: '/events', label: 'Sự kiện', icon: 'icon-[lucide--list-todo]' },
-	{ name: 'calendar', path: '/calendar', label: 'Lịch', icon: 'icon-[lucide--calendar-days]' },
-	{ name: 'reminders', path: '/reminders', label: 'Nhắc hẹn', icon: 'icon-[lucide--bell-ring]' },
-	{ name: 'settings', path: '/settings', label: 'Cài đặt', icon: 'icon-[lucide--settings]' }
+export const bottomNavItems = [
+	{
+		name: 'volunteers' as const,
+		path: '/volunteers',
+		label: 'Công quả',
+		icon: 'icon-[lucide--users]'
+	},
+	{
+		name: 'departments' as const,
+		path: '/departments',
+		label: 'Phân ban',
+		icon: 'icon-[lucide--layout-list]'
+	},
+	{ name: 'users' as const, path: '/users', label: 'Tài khoản', icon: 'icon-[lucide--shield-user]' }
 ];
 
 export function parseRoute(pathname: string): AppRoute {
-	const path = normalizePath(pathname);
-
-	if (path === '/' || path === '/events') {
-		return { name: 'events', path: '/events', title: 'Sự kiện' };
-	}
-	if (path === '/events/new') {
-		return { name: 'event-new', path, title: 'Tạo sự kiện' };
-	}
-
-	const eventEditMatch = /^\/events\/([^/]+)\/edit$/.exec(path);
-	if (eventEditMatch) {
+	const path = pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+	if (path === '/' || path === '/volunteers')
+		return { name: 'volunteers', path: '/volunteers', title: 'Huynh đệ công quả' };
+	if (path === '/volunteers/new') return { name: 'volunteer-new', path, title: 'Thêm hồ sơ' };
+	const edit = /^\/volunteers\/([^/]+)\/edit$/.exec(path);
+	if (edit)
 		return {
-			name: 'event-edit',
+			name: 'volunteer-edit',
 			path,
-			title: 'Sửa sự kiện',
-			eventId: decodeURIComponent(eventEditMatch[1])
+			title: 'Sửa hồ sơ',
+			volunteerId: decodeURIComponent(edit[1])
 		};
-	}
-
-	const eventMatch = /^\/events\/([^/]+)$/.exec(path);
-	if (eventMatch) {
+	const detail = /^\/volunteers\/([^/]+)$/.exec(path);
+	if (detail)
 		return {
-			name: 'event-detail',
+			name: 'volunteer-detail',
 			path,
-			title: 'Chi tiết sự kiện',
-			eventId: decodeURIComponent(eventMatch[1])
+			title: 'Chi tiết hồ sơ',
+			volunteerId: decodeURIComponent(detail[1])
 		};
-	}
-
-	if (path === '/calendar') {
-		return { name: 'calendar', path, title: 'Lịch' };
-	}
-	if (path === '/reminders') {
-		return { name: 'reminders', path, title: 'Nhắc hẹn' };
-	}
-	if (path === '/settings') {
-		return { name: 'settings', path, title: 'Cài đặt' };
-	}
-
-	return { name: 'events', path: '/events', title: 'Sự kiện' };
+	if (path === '/users') return { name: 'users', path, title: 'Tài khoản quản trị' };
+	if (path === '/departments') return { name: 'departments', path, title: 'Quản lý phân ban' };
+	return { name: 'volunteers', path: '/volunteers', title: 'Huynh đệ công quả' };
 }
 
 export function mainRouteFor(route: AppRoute): MainRouteName {
-	if (route.name === 'event-detail' || route.name === 'event-new' || route.name === 'event-edit') {
-		return 'events';
-	}
-
-	return route.name;
-}
-
-function normalizePath(pathname: string): string {
-	if (pathname.length > 1 && pathname.endsWith('/')) {
-		return pathname.slice(0, -1);
-	}
-	return pathname;
+	if (route.name === 'users' || route.name === 'departments') return route.name;
+	return 'volunteers';
 }

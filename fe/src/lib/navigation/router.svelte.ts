@@ -1,6 +1,10 @@
 import { parseRoute, type AppRoute, type MainRouteName } from './routes';
 
-const initialRoute: AppRoute = { name: 'events', path: '/events', title: 'Events' };
+const initialRoute: AppRoute = {
+	name: 'volunteers',
+	path: '/volunteers',
+	title: 'Huynh đệ công quả'
+};
 
 class AppRouter {
 	current = $state<AppRoute>(initialRoute);
@@ -52,15 +56,14 @@ class AppRouter {
 			return;
 		}
 
-		this.replace('/events');
+		this.replace('/volunteers');
 	}
 
 	openMain(name: MainRouteName) {
 		const paths: Record<MainRouteName, string> = {
-			events: '/events',
-			calendar: '/calendar',
-			reminders: '/reminders',
-			settings: '/settings'
+			volunteers: '/volunteers',
+			departments: '/departments',
+			users: '/users'
 		};
 
 		this.push(paths[name]);

@@ -5,20 +5,18 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"reminder/be/internal/account"
-	"reminder/be/internal/config"
-	"reminder/be/internal/db"
-	"reminder/be/internal/device"
-	"reminder/be/internal/event"
-	"reminder/be/internal/httpapi"
-	"reminder/be/internal/ota"
-	"reminder/be/internal/push"
-	"reminder/be/internal/reminder"
+	"minhquang/be/internal/config"
+	"minhquang/be/internal/db"
+	"minhquang/be/internal/department"
+	"minhquang/be/internal/device"
+	"minhquang/be/internal/httpapi"
+	"minhquang/be/internal/ota"
+	"minhquang/be/internal/user"
+	"minhquang/be/internal/volunteer"
 )
 
 func main() {
@@ -32,14 +30,21 @@ func main() {
 		defer stores.pool.Close()
 	}
 
-	eventService := event.NewService(stores.events, time.Now)
 	deviceService := device.NewService(stores.devices, time.Now)
-	accountService := account.NewService(stores.accounts, time.Now)
+	userService := user.NewService(stores.users, time.Now)
+	volunteerService := volunteer.NewService(stores.volunteers, time.Now)
+	departmentService := department.NewService(stores.departments, time.Now)
+	volunteerService.SetDepartmentResolver(departmentService)
+	if err := userService.EnsureInitialAdmin(ctx, user.CreateInput{
+		Username:    os.Getenv("INITIAL_ADMIN_USERNAME"),
+		DisplayName: env("INITIAL_ADMIN_DISPLAY_NAME", "Ban quản trị"),
+		Password:    os.Getenv("INITIAL_ADMIN_PASSWORD"),
+	}); err != nil {
+		log.Fatalf("create initial admin: %v", err)
+	}
 	otaStorageDir := env("OTA_STORAGE_DIR", "storage/ota")
 	otaService := ota.NewService(otaStorageDir)
-	eventService.SetRecipientResolver(accountService)
-	startReminderWorker(ctx, stores.events, deviceService)
-	router := httpapi.NewRouter(eventService, deviceService, accountService, otaService, otaStorageDir)
+	router := httpapi.NewRouter(deviceService, userService, volunteerService, departmentService, otaService, otaStorageDir)
 
 	log.Printf("api listening on %s", addr)
 	if err := http.ListenAndServe(addr, router); err != nil {
@@ -55,45 +60,12 @@ func env(key string, fallback string) string {
 	return value
 }
 
-func startReminderWorker(ctx context.Context, events event.Store, devices *device.Service) {
-	enabled, err := strconv.ParseBool(env("REMINDER_WORKER_ENABLED", "false"))
-	if err != nil || !enabled {
-		return
-	}
-
-	sender, err := push.NewFirebaseSender(
-		ctx,
-		os.Getenv("FIREBASE_PROJECT_ID"),
-		os.Getenv("FIREBASE_SERVICE_ACCOUNT_FILE"),
-	)
-	if err != nil {
-		log.Fatalf("create firebase sender: %v", err)
-	}
-
-	interval, err := time.ParseDuration(env("REMINDER_WORKER_INTERVAL", "30s"))
-	if err != nil {
-		log.Fatalf("parse REMINDER_WORKER_INTERVAL: %v", err)
-	}
-
-	batchSize, err := strconv.Atoi(env("REMINDER_WORKER_BATCH_SIZE", "25"))
-	if err != nil {
-		log.Fatalf("parse REMINDER_WORKER_BATCH_SIZE: %v", err)
-	}
-
-	worker := reminder.NewWorker(events, devices, sender, time.Now, reminder.Config{
-		BatchSize: batchSize,
-		Logger:    log.Default(),
-	})
-
-	log.Printf("reminder worker enabled; interval=%s batch_size=%d", interval, batchSize)
-	go worker.Run(ctx, interval)
-}
-
 type stores struct {
-	pool     *pgxpool.Pool
-	events   event.Store
-	devices  device.Store
-	accounts account.Store
+	pool        *pgxpool.Pool
+	devices     device.Store
+	users       user.Store
+	volunteers  volunteer.Store
+	departments department.Store
 }
 
 func newStores(ctx context.Context) stores {
@@ -101,9 +73,10 @@ func newStores(ctx context.Context) stores {
 	if databaseURL == "" {
 		log.Printf("DATABASE_URL is not set; using in-memory stores")
 		return stores{
-			events:   event.NewMemoryStore(),
-			devices:  device.NewMemoryStore(),
-			accounts: account.NewMemoryStore(),
+			devices:     device.NewMemoryStore(),
+			users:       user.NewMemoryStore(),
+			volunteers:  volunteer.NewMemoryStore(),
+			departments: department.NewMemoryStore(),
 		}
 	}
 
@@ -114,9 +87,10 @@ func newStores(ctx context.Context) stores {
 
 	log.Printf("using postgres stores")
 	return stores{
-		pool:     pool,
-		events:   event.NewPostgresStore(pool),
-		devices:  device.NewPostgresStore(pool),
-		accounts: account.NewPostgresStore(pool),
+		pool:        pool,
+		devices:     device.NewPostgresStore(pool),
+		users:       user.NewPostgresStore(pool),
+		volunteers:  volunteer.NewPostgresStore(pool),
+		departments: department.NewPostgresStore(pool),
 	}
 }

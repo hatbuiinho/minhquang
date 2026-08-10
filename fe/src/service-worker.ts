@@ -5,13 +5,13 @@ import { build, files, version } from '$service-worker';
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
 
-const CACHE_NAME = `reminder-${version}`;
+const CACHE_NAME = `minhquang-${version}`;
 const ASSETS = [
 	...new Set([
 		...build,
 		...files,
 		'/',
-		'/events',
+		'/volunteers',
 		'/icons/favicon-32.png',
 		'/icons/icon-192.png',
 		'/icons/icon-512.png',
@@ -86,7 +86,7 @@ sw.addEventListener('fetch', (event) => {
 			fetch(request).catch(async () => {
 				return (
 					(await caches.match('/')) ??
-					(await caches.match('/events')) ??
+					(await caches.match('/volunteers')) ??
 					new Response('Offline', {
 						status: 503,
 						headers: { 'Content-Type': 'text/plain; charset=utf-8' }

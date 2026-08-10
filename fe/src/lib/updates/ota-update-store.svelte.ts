@@ -1,7 +1,13 @@
 import { Capacitor } from '@capacitor/core';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 
-import { getLatestAndroidUpdate } from '$lib/events/api';
+import { apiRequest } from '$lib/api/client';
+
+type AppUpdate = {
+	available: boolean;
+	version?: string;
+	url?: string;
+};
 
 type OTAStatus = 'idle' | 'checking' | 'downloading' | 'ready' | 'unavailable' | 'error';
 
@@ -25,11 +31,12 @@ class OTAUpdateStore {
 			const current = await CapacitorUpdater.current();
 			this.currentVersion = current.bundle.version;
 
-			const update = await getLatestAndroidUpdate({
+			const params = new URLSearchParams({
 				channel: import.meta.env.VITE_OTA_CHANNEL || 'dev',
 				current_version: current.bundle.version,
 				native_version: import.meta.env.VITE_NATIVE_VERSION || current.native || '1.0'
 			});
+			const update = await apiRequest<AppUpdate>(`/api/app-updates/android/latest?${params}`);
 
 			if (!update.available || !update.version || !update.url) {
 				this.status = 'unavailable';

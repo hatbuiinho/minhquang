@@ -5,24 +5,28 @@ import (
 	"net/netip"
 	"net/url"
 
-	"reminder/be/internal/account"
-	"reminder/be/internal/device"
-	"reminder/be/internal/docs"
-	"reminder/be/internal/event"
-	"reminder/be/internal/ota"
+	"minhquang/be/internal/department"
+	"minhquang/be/internal/device"
+	"minhquang/be/internal/docs"
+	"minhquang/be/internal/ota"
+	"minhquang/be/internal/user"
+	"minhquang/be/internal/volunteer"
 )
 
 func NewRouter(
-	events *event.Service,
 	devices *device.Service,
-	accounts *account.Service,
+	users *user.Service,
+	volunteers *volunteer.Service,
+	departments *department.Service,
 	updates *ota.Service,
 	otaStorageDir string,
 ) http.Handler {
 	mux := http.NewServeMux()
-	handler := NewEventHandler(events)
 	deviceHandler := NewDeviceHandler(devices)
-	accountHandler := NewAccountHandler(accounts)
+	authHandler := NewAuthHandler(users)
+	userHandler := NewUserHandler(users)
+	volunteerHandler := NewVolunteerHandler(volunteers)
+	departmentHandler := NewDepartmentHandler(departments)
 	otaHandler := NewOTAHandler(updates)
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -33,15 +37,18 @@ func NewRouter(
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(docs.OpenAPIYAML)
 	})
-	mux.HandleFunc("/api/events", handler.Collection)
-	mux.HandleFunc("/api/events/", handler.Item)
-	mux.HandleFunc("/api/devices", deviceHandler.Collection)
-	mux.HandleFunc("/api/users", accountHandler.Users)
-	mux.HandleFunc("/api/groups", accountHandler.Groups)
-	mux.HandleFunc("/api/groups/", accountHandler.GroupMembers)
-	mux.HandleFunc("/api/reminders/upcoming", handler.UpcomingReminders)
-	mux.HandleFunc("/api/reminder-jobs", handler.ReminderJobs)
-	mux.HandleFunc("/api/reminder-jobs/", handler.ReminderJobItem)
+	mux.HandleFunc("POST /api/auth/login", authHandler.Login)
+	protected := http.NewServeMux()
+	protected.HandleFunc("/api/auth/logout", authHandler.Logout)
+	protected.HandleFunc("/api/auth/me", authHandler.Me)
+	protected.HandleFunc("/api/users", userHandler.Collection)
+	protected.HandleFunc("/api/volunteers", volunteerHandler.Collection)
+	protected.HandleFunc("/api/volunteers/", volunteerHandler.Item)
+	protected.HandleFunc("/api/departments", departmentHandler.Collection)
+	protected.HandleFunc("/api/departments/", departmentHandler.Item)
+	protected.HandleFunc("GET /api/volunteer-options/departments", departmentHandler.Options)
+	protected.HandleFunc("/api/devices", deviceHandler.Collection)
+	mux.Handle("/api/", requireAuth(users, protected))
 	mux.HandleFunc("/api/app-updates/android/latest", otaHandler.AndroidLatest)
 	mux.Handle("/ota/", http.StripPrefix("/ota/", http.FileServer(http.Dir(otaStorageDir))))
 
@@ -54,8 +61,8 @@ func withCORS(next http.Handler) http.Handler {
 		if origin != "" && allowedOrigin(origin) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Vary", "Origin")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-User-ID")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 		}
 
 		if r.Method == http.MethodOptions {

@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS volunteers;
+DROP TABLE IF EXISTS user_devices;
+DROP TABLE IF EXISTS user_sessions;
+DROP TABLE IF EXISTS users;
