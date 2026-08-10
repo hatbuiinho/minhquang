@@ -1,0 +1,40 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Env and secrets
+.env
+.env.*
+!.env.example
+!.env.test
+**/secrets/
+**/firebase-service-account.json
+
+# Node
+node_modules/
+
+# SvelteKit / frontend output
+fe/.svelte-kit/
+fe/build/
+fe/.output/
+fe/.vercel/
+fe/.netlify/
+fe/.wrangler/
+
+# Android signing and local app config
+*.jks
+*.keystore
+fe/android/app/*.jks
+fe/android/app/*.keystore
+fe/android/app/google-services.json
+
+# Go / Air
+be/tmp/
+
+# OTA generated artifacts
+be/storage/ota/**/*.zip
+be/storage/ota/**/latest.json
+
+# Vite temp
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*

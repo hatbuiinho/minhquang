@@ -1,0 +1,41 @@
+services:
+  reminder-be:
+    build:
+      context: .
+      dockerfile: be/Dockerfile
+    container_name: reminder-be
+    restart: unless-stopped
+    env_file:
+      - ${COMPOSE_ENV_FILE:-.env}
+    environment:
+      FIREBASE_SERVICE_ACCOUNT_FILE: /app/secrets/firebase-service-account.json
+      OTA_STORAGE_DIR: /app/storage/ota
+    # ports:
+    #   - "${API_PORT:-8080}:8080"
+    volumes:
+      - ./ota-storage:/app/storage/ota
+      - ./be/secrets:/app/secrets:ro
+    networks:
+      - nginx_network
+
+  ota-publisher:
+    build:
+      context: .
+      dockerfile: fe/Dockerfile.ota
+    profiles:
+      - tools
+    env_file:
+      - ${COMPOSE_ENV_FILE:-.env}
+    environment:
+      VITE_API_BASE_URL: ${PUBLIC_API_BASE_URL}
+      VITE_OTA_CHANNEL: ${OTA_CHANNEL:-production}
+      VITE_NATIVE_VERSION: ${NATIVE_VERSION:-1.0}
+    volumes:
+      - ./ota-storage:/workspace/be/storage/ota
+    command: yarn ota:publish
+    networks:
+      - nginx_network
+
+networks:
+  nginx_network:
+    external: true

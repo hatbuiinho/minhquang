@@ -1,0 +1,12 @@
+FROM node:22-alpine
+
+WORKDIR /workspace/fe
+
+RUN apk add --no-cache zip
+
+COPY fe/package.json fe/yarn.lock ./
+RUN yarn install --frozen-lockfile
+
+COPY fe/ ./
+
+CMD ["yarn", "ota:publish"]

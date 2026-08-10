@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Nhắc việc</string>
+    <string name="title_activity_main">Nhắc việc</string>
+    <string name="package_name">com.ttpq.reminder</string>
+    <string name="custom_url_scheme">com.ttpq.reminder</string>
+    <string name="notification_channel_reminders_name">Nhắc hẹn</string>
+    <string name="notification_channel_reminders_description">Thông báo nhắc hẹn thông thường</string>
+    <string name="notification_channel_urgent_reminders_name">Nhắc hẹn quan trọng</string>
+    <string name="notification_channel_urgent_reminders_description">Thông báo nhắc hẹn có âm thanh, rung và popup</string>
+</resources>

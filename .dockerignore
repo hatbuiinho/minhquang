@@ -1,0 +1,14 @@
+.git
+**/.git
+**/node_modules
+**/.svelte-kit
+**/build
+**/tmp
+**/.env
+be/secrets
+be/firebase-service-account.json
+*.jks
+*.keystore
+ota-storage
+be/storage/ota/**/*.zip
+be/storage/ota/**/latest.json

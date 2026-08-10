@@ -1,0 +1,1085 @@
+openapi: 3.1.0
+info:
+  title: Reminder API
+  version: 0.1.0
+  description: Event management API for the Reminder app.
+servers:
+  - url: http://localhost:8080
+    description: Local web development
+  - url: http://10.0.2.2:8080
+    description: Android emulator development
+tags:
+  - name: Health
+  - name: Accounts
+  - name: Events
+  - name: Devices
+  - name: Reminders
+  - name: App Updates
+paths:
+  /healthz:
+    get:
+      tags:
+        - Health
+      summary: Check API health
+      operationId: getHealth
+      responses:
+        "200":
+          description: API is healthy.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /api/events:
+    get:
+      tags:
+        - Events
+      summary: List events for the current user
+      operationId: listEvents
+      parameters:
+        - $ref: "#/components/parameters/UserIDHeader"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Cursor returned from the previous list response.
+      responses:
+        "200":
+          description: Events ordered by created_at descending.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      tags:
+        - Events
+      summary: Create an event
+      operationId: createEvent
+      parameters:
+        - $ref: "#/components/parameters/UserIDHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventCreateRequest"
+            examples:
+              default:
+                value:
+                  title: Renew passport
+                  description: Prepare documents
+                  starts_at: "2026-09-01T09:00:00+07:00"
+                  timezone: Asia/Ho_Chi_Minh
+                  reminders:
+                    - offset_minutes: 1440
+                    - offset_minutes: 10080
+      responses:
+        "201":
+          description: Event created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/events/{event_id}:
+    get:
+      tags:
+        - Events
+      summary: Get an event
+      operationId: getEvent
+      parameters:
+        - $ref: "#/components/parameters/UserIDHeader"
+        - $ref: "#/components/parameters/EventIDPath"
+      responses:
+        "200":
+          description: Event found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    patch:
+      tags:
+        - Events
+      summary: Update an event
+      operationId: updateEvent
+      parameters:
+        - $ref: "#/components/parameters/UserIDHeader"
+        - $ref: "#/components/parameters/EventIDPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventUpdateRequest"
+            examples:
+              statusOnly:
+                value:
+                  status: archived
+              editEvent:
+                value:
+                  title: Passport appointment
+                  description: Bring original documents
+                  starts_at: "2026-09-01T10:00:00+07:00"
+                  timezone: Asia/Ho_Chi_Minh
+                  status: active
+                  reminders:
+                    - offset_minutes: 60
+      responses:
+        "200":
+          description: Event updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      tags:
+        - Events
+      summary: Delete an event
+      operationId: deleteEvent
+      parameters:
+        - $ref: "#/components/parameters/UserIDHeader"
+        - $ref: "#/components/parameters/EventIDPath"
+      responses:
+        "204":
+          description: Event deleted.
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/devices:
+    post:
+      tags:
+        - Devices
+      summary: Register or refresh a push notification device token
+      operationId: registerDevice
+      parameters:
+        - $ref: "#/components/parameters/UserIDHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceRegisterRequest"
+            examples:
+              android:
+                value:
+                  platform: android
+                  push_token: fcm-token
+      responses:
+        "200":
+          description: Device token registered.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDevice"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/users:
+    get:
+      tags:
+        - Accounts
+      summary: List active users
+      operationId: listUsers
+      responses:
+        "200":
+          description: Active users.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - users
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+    post:
+      tags:
+        - Accounts
+      summary: Create a user
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreateRequest"
+      responses:
+        "201":
+          description: User created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /api/groups:
+    get:
+      tags:
+        - Accounts
+      summary: List active groups
+      operationId: listGroups
+      responses:
+        "200":
+          description: Active groups.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - groups
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Group"
+    post:
+      tags:
+        - Accounts
+      summary: Create a group
+      operationId: createGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GroupCreateRequest"
+      responses:
+        "201":
+          description: Group created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /api/groups/{group_id}/members:
+    post:
+      tags:
+        - Accounts
+      summary: Add a user to a group
+      operationId: addGroupMember
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+              additionalProperties: false
+              properties:
+                user_id:
+                  type: string
+      responses:
+        "204":
+          description: Member added.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /api/reminders/upcoming:
+    get:
+      tags:
+        - Reminders
+      summary: List upcoming reminder jobs for the current user
+      operationId: listUpcomingReminders
+      parameters:
+        - $ref: "#/components/parameters/UserIDHeader"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        "200":
+          description: Upcoming pending reminders ordered by scheduled time.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - reminders
+                properties:
+                  reminders:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ReminderJob"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/reminder-jobs:
+    get:
+      tags:
+        - Reminders
+      summary: List due in-app reminder jobs for the current user
+      operationId: listReminderInbox
+      parameters:
+        - $ref: "#/components/parameters/UserIDHeader"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        "200":
+          description: Due reminders that have not been dismissed.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - reminders
+                properties:
+                  reminders:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ReminderJob"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/reminder-jobs/{reminder_job_id}/read:
+    post:
+      tags:
+        - Reminders
+      summary: Mark a reminder job as read
+      operationId: markReminderJobRead
+      parameters:
+        - $ref: "#/components/parameters/UserIDHeader"
+        - name: reminder_job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: rj_abc123
+      responses:
+        "200":
+          description: Reminder job after read state is applied.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReminderJob"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/reminder-jobs/{reminder_job_id}/dismiss:
+    post:
+      tags:
+        - Reminders
+      summary: Dismiss a reminder job from the in-app inbox
+      operationId: dismissReminderJob
+      parameters:
+        - $ref: "#/components/parameters/UserIDHeader"
+        - name: reminder_job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: rj_abc123
+      responses:
+        "200":
+          description: Reminder job after dismiss state is applied.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReminderJob"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/reminder-jobs/{reminder_job_id}/snooze:
+    post:
+      tags:
+        - Reminders
+      summary: Snooze a reminder job and create a new pending reminder
+      operationId: snoozeReminderJob
+      parameters:
+        - $ref: "#/components/parameters/UserIDHeader"
+        - name: reminder_job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: rj_abc123
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReminderSnoozeRequest"
+      responses:
+        "200":
+          description: New snoozed reminder job.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReminderJob"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/app-updates/android/latest:
+    get:
+      tags:
+        - App Updates
+      summary: Check latest self-hosted Android web asset update
+      operationId: getLatestAndroidAppUpdate
+      parameters:
+        - name: channel
+          in: query
+          required: false
+          schema:
+            type: string
+            default: dev
+        - name: current_version
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: native_version
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "1.0"
+      responses:
+        "200":
+          description: Latest OTA metadata. `available=false` means no compatible update.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppUpdate"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+components:
+  parameters:
+    UserIDHeader:
+      name: X-User-ID
+      in: header
+      required: false
+      description: Development user id. Defaults to `local-user` when omitted.
+      schema:
+        type: string
+        example: local-user
+    EventIDPath:
+      name: event_id
+      in: path
+      required: true
+      schema:
+        type: string
+        example: evt_abc123
+  responses:
+    BadRequest:
+      description: Request validation failed.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Event not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    InternalError:
+      description: Unexpected server error.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+    EventStatus:
+      type: string
+      enum:
+        - active
+        - archived
+        - cancelled
+    AudienceType:
+      type: string
+      enum:
+        - self
+        - selected_users
+        - selected_groups
+        - all_users
+    RecipientSourceType:
+      type: string
+      enum:
+        - self
+        - user
+        - group
+        - all_users
+    ReminderJobStatus:
+      type: string
+      enum:
+        - pending
+        - processing
+        - sent
+        - cancelled
+        - failed
+    ReminderImportance:
+      type: string
+      enum:
+        - normal
+        - urgent
+    DevicePlatform:
+      type: string
+      enum:
+        - android
+        - ios
+        - web
+    AppUpdate:
+      type: object
+      required:
+        - available
+      properties:
+        available:
+          type: boolean
+        platform:
+          type: string
+          example: android
+        channel:
+          type: string
+          example: dev
+        version:
+          type: string
+          example: "2026.08.03.001"
+        url:
+          type: string
+          example: "http://localhost:8080/ota/android/dev/2026.08.03.001.zip"
+        checksum:
+          type: string
+        mandatory:
+          type: boolean
+        min_native_version:
+          type: string
+          example: "1.0"
+        max_native_version:
+          type: string
+          example: "1.0"
+        notes:
+          type: string
+    Event:
+      type: object
+      required:
+        - id
+        - user_id
+        - title
+        - description
+        - starts_at
+        - timezone
+        - status
+        - audience_type
+        - reminder_generation
+        - reminders
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          example: evt_abc123
+        user_id:
+          type: string
+          example: local-user
+        title:
+          type: string
+          example: Renew passport
+        description:
+          type: string
+          example: Prepare documents
+        starts_at:
+          type: string
+          format: date-time
+          description: Stored and returned as UTC by the backend.
+          example: "2026-09-01T02:00:00Z"
+        timezone:
+          type: string
+          example: Asia/Ho_Chi_Minh
+        status:
+          $ref: "#/components/schemas/EventStatus"
+        audience_type:
+          $ref: "#/components/schemas/AudienceType"
+        reminder_generation:
+          type: integer
+          minimum: 1
+          example: 1
+        reminders:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReminderRule"
+        recipients:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventRecipient"
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-08-02T04:40:13Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2026-08-02T04:40:13Z"
+    EventListResponse:
+      type: object
+      required:
+        - events
+        - has_more
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+        next_cursor:
+          type: string
+          description: Pass this value as `cursor` to load the next page.
+        has_more:
+          type: boolean
+          example: true
+    EventCreateRequest:
+      type: object
+      required:
+        - title
+        - starts_at
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          default: ""
+        starts_at:
+          type: string
+          format: date-time
+          description: RFC3339 timestamp. Offset is accepted and normalized to UTC.
+        timezone:
+          type: string
+          default: UTC
+        reminders:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReminderRuleInput"
+          default: []
+        audience_type:
+          $ref: "#/components/schemas/AudienceType"
+        recipient_user_ids:
+          type: array
+          items:
+            type: string
+          default: []
+        recipient_group_ids:
+          type: array
+          items:
+            type: string
+          default: []
+    EventUpdateRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        starts_at:
+          type: string
+          format: date-time
+          description: RFC3339 timestamp. Offset is accepted and normalized to UTC.
+        timezone:
+          type: string
+        status:
+          $ref: "#/components/schemas/EventStatus"
+        reminders:
+          type: array
+          description: Replaces all reminder rules for the event when present.
+          items:
+            $ref: "#/components/schemas/ReminderRuleInput"
+        audience_type:
+          $ref: "#/components/schemas/AudienceType"
+        recipient_user_ids:
+          type: array
+          items:
+            type: string
+        recipient_group_ids:
+          type: array
+          items:
+            type: string
+    ReminderRule:
+      type: object
+      required:
+        - id
+        - event_id
+        - offset_minutes
+        - enabled
+        - channel
+        - importance
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          example: rr_abc123
+        event_id:
+          type: string
+          example: evt_abc123
+        offset_minutes:
+          type: integer
+          minimum: 0
+          description: Minutes before the event start time. `0` means at event time.
+          example: 1440
+        enabled:
+          type: boolean
+          example: true
+        channel:
+          type: string
+          enum:
+            - push
+          example: push
+        importance:
+          $ref: "#/components/schemas/ReminderImportance"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ReminderRuleInput:
+      type: object
+      required:
+        - offset_minutes
+      additionalProperties: false
+      properties:
+        offset_minutes:
+          type: integer
+          minimum: 0
+          description: Minutes before the event start time. `0` means at event time.
+          example: 1440
+        enabled:
+          type: boolean
+          default: true
+        channel:
+          type: string
+          enum:
+            - push
+          default: push
+        importance:
+          $ref: "#/components/schemas/ReminderImportance"
+          default: normal
+    EventRecipient:
+      type: object
+      required:
+        - event_id
+        - user_id
+        - source_type
+        - created_at
+      properties:
+        event_id:
+          type: string
+        user_id:
+          type: string
+        source_type:
+          $ref: "#/components/schemas/RecipientSourceType"
+        source_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    UserCreateRequest:
+      type: object
+      required:
+        - name
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: Optional stable development user id.
+        name:
+          type: string
+          minLength: 1
+        email:
+          type: string
+    User:
+      type: object
+      required:
+        - id
+        - name
+        - email
+        - active
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    GroupCreateRequest:
+      type: object
+      required:
+        - name
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+    Group:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - active
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ReminderJob:
+      type: object
+      required:
+        - id
+        - user_id
+        - event_id
+        - reminder_rule_id
+        - event_title
+        - event_starts_at
+        - offset_minutes
+        - channel
+        - importance
+        - status
+        - scheduled_at
+        - reminder_generation
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          example: rj_abc123
+        user_id:
+          type: string
+          example: local-user
+        event_id:
+          type: string
+          example: evt_abc123
+        reminder_rule_id:
+          type: string
+          example: rr_abc123
+        event_title:
+          type: string
+          example: Renew passport
+        event_starts_at:
+          type: string
+          format: date-time
+          example: "2026-09-01T02:00:00Z"
+        offset_minutes:
+          type: integer
+          minimum: 0
+          example: 1440
+        channel:
+          type: string
+          enum:
+            - push
+          example: push
+        importance:
+          $ref: "#/components/schemas/ReminderImportance"
+        status:
+          $ref: "#/components/schemas/ReminderJobStatus"
+        scheduled_at:
+          type: string
+          format: date-time
+          example: "2026-08-31T02:00:00Z"
+        sent_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+        read_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+        dismissed_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+        snoozed_from_id:
+          type: string
+          description: Original reminder job id when this job was created by snooze.
+        snoozed_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+        cancelled_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+        reminder_generation:
+          type: integer
+          minimum: 1
+          example: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ReminderSnoozeRequest:
+      type: object
+      required:
+        - delay_minutes
+      additionalProperties: false
+      properties:
+        delay_minutes:
+          type: integer
+          minimum: 1
+          maximum: 10080
+          description: Minutes from now before the reminder should fire again.
+          example: 15
+    DeviceRegisterRequest:
+      type: object
+      required:
+        - platform
+        - push_token
+      additionalProperties: false
+      properties:
+        platform:
+          $ref: "#/components/schemas/DevicePlatform"
+        push_token:
+          type: string
+          minLength: 1
+          example: fcm-token
+    UserDevice:
+      type: object
+      required:
+        - id
+        - user_id
+        - platform
+        - push_token
+        - enabled
+        - last_seen_at
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          example: dev_abc123
+        user_id:
+          type: string
+          example: local-user
+        platform:
+          $ref: "#/components/schemas/DevicePlatform"
+        push_token:
+          type: string
+          example: fcm-token
+        enabled:
+          type: boolean
+          example: true
+        last_seen_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              examples:
+                - invalid_input
+                - invalid_json
+                - invalid_status
+                - not_found
+                - internal_error
+            message:
+              type: string
