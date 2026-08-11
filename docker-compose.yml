@@ -1,8 +1,6 @@
 services:
   minhquang-migrate:
-    build:
-      context: .
-      dockerfile: be/Dockerfile
+    image: ${BACKEND_IMAGE:-minhquang-be:local}
     restart: "no"
     env_file:
       - ${COMPOSE_ENV_FILE:-.env}
@@ -11,6 +9,7 @@ services:
       - nginx_network
 
   minhquang-be:
+    image: ${BACKEND_IMAGE:-minhquang-be:local}
     build:
       context: .
       dockerfile: be/Dockerfile
