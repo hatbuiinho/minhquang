@@ -121,15 +121,6 @@
 				<span class="mb-1.5 block text-sm font-medium">Phân ban</span>
 				<DepartmentCombobox bind:value={volunteerStore.form.department} />
 			</label>
-			<label class="block md:col-span-2">
-				<span class="mb-1.5 block text-sm font-medium">Ảnh đại diện (URL)</span>
-				<input
-					bind:value={volunteerStore.form.avatar_url}
-					type="url"
-					placeholder="https://..."
-					class="h-11 w-full rounded-md border-[var(--color-border-strong)]"
-				/>
-			</label>
 			<label class="block">
 				<span class="mb-1.5 block text-sm font-medium"
 					>Ngày đến <span class="text-[var(--color-danger)]">*</span></span

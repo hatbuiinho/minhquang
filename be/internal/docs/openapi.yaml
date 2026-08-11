@@ -10,6 +10,7 @@ tags:
   - name: Users
   - name: Volunteers
   - name: Departments
+  - name: Uploads
 paths:
   /healthz:
     get:
@@ -54,6 +55,91 @@ paths:
                 $ref: "#/components/schemas/User"
         "401":
           $ref: "#/components/responses/Unauthorized"
+  /api/auth/password:
+    patch:
+      tags: [Authentication]
+      summary: Đổi mật khẩu tài khoản hiện tại
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, new_password]
+              properties:
+                current_password: { type: string, format: password }
+                new_password: { type: string, format: password, minLength: 8 }
+      responses:
+        "204":
+          description: Đã đổi mật khẩu và thu hồi các phiên khác
+        "400":
+          description: Mật khẩu hiện tại không đúng hoặc mật khẩu mới không hợp lệ
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/auth/profile:
+    patch:
+      tags: [Authentication]
+      summary: Cập nhật hồ sơ tài khoản hiện tại
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, display_name]
+              properties:
+                username: { type: string }
+                display_name: { type: string }
+      responses:
+        "200":
+          description: Hồ sơ đã cập nhật
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "409":
+          description: Tên đăng nhập đã tồn tại
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/auth/avatar:
+    patch:
+      tags: [Authentication]
+      summary: Cập nhật ảnh đại diện tài khoản hiện tại
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [avatar_url]
+              properties:
+                avatar_url: { type: string, format: uri, maxLength: 2048 }
+      responses:
+        "200":
+          description: Ảnh đại diện đã cập nhật
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+  /api/uploads/presign:
+    post:
+      tags: [Uploads]
+      summary: Tạo URL tải ảnh trực tiếp lên object storage
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [file_name, content_type, kind]
+              properties:
+                file_name: { type: string }
+                content_type: { type: string, enum: [image/jpeg, image/png, image/webp] }
+                kind: { type: string, enum: [avatar] }
+      responses:
+        "200": { description: Presigned PUT URL và public URL của ảnh }
   /api/auth/logout:
     post:
       tags: [Authentication]
@@ -298,11 +384,12 @@ components:
   schemas:
     User:
       type: object
-      required: [id, username, display_name, role, active, created_at, updated_at]
+      required: [id, username, display_name, avatar_url, role, active, created_at, updated_at]
       properties:
         id: { type: string }
         username: { type: string }
         display_name: { type: string }
+        avatar_url: { type: string }
         role: { type: string, enum: [admin] }
         active: { type: boolean }
         created_at: { type: string, format: date-time }

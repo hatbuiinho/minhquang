@@ -1,9 +1,11 @@
 import { apiRequest, setAccessToken } from '$lib/api/client';
+import { toastStore } from '$lib/ui/toast-store.svelte';
 
 export type AdminUser = {
 	id: string;
 	username: string;
 	display_name: string;
+	avatar_url: string;
 	role: 'admin';
 	active: boolean;
 	created_at: string;
@@ -16,6 +18,9 @@ class AuthStore {
 	user = $state<AdminUser | null>(null);
 	initializing = $state(true);
 	isSubmitting = $state(false);
+	isChangingPassword = $state(false);
+	isUpdatingProfile = $state(false);
+	isUpdatingAvatar = $state(false);
 	error = $state('');
 
 	async init() {
@@ -65,6 +70,65 @@ class AuthStore {
 		localStorage.removeItem(tokenKey);
 		setAccessToken('');
 		this.user = null;
+	}
+
+	async changePassword(currentPassword: string, newPassword: string): Promise<boolean> {
+		if (this.isChangingPassword) return false;
+		this.isChangingPassword = true;
+		try {
+			await apiRequest<void>('/api/auth/password', {
+				method: 'PATCH',
+				body: JSON.stringify({
+					current_password: currentPassword,
+					new_password: newPassword
+				})
+			});
+			toastStore.success('Đã đổi mật khẩu');
+			return true;
+		} catch (error) {
+			toastStore.error(error instanceof Error ? error.message : 'Không thể đổi mật khẩu');
+			return false;
+		} finally {
+			this.isChangingPassword = false;
+		}
+	}
+
+	async updateProfile(username: string, displayName: string): Promise<AdminUser | null> {
+		if (this.isUpdatingProfile) return null;
+		this.isUpdatingProfile = true;
+		try {
+			const item = await apiRequest<AdminUser>('/api/auth/profile', {
+				method: 'PATCH',
+				body: JSON.stringify({ username, display_name: displayName })
+			});
+			this.user = item;
+			toastStore.success('Đã cập nhật hồ sơ');
+			return item;
+		} catch (error) {
+			toastStore.error(error instanceof Error ? error.message : 'Không thể cập nhật hồ sơ');
+			return null;
+		} finally {
+			this.isUpdatingProfile = false;
+		}
+	}
+
+	async updateAvatar(avatarUrl: string): Promise<AdminUser | null> {
+		if (this.isUpdatingAvatar) return null;
+		this.isUpdatingAvatar = true;
+		try {
+			const item = await apiRequest<AdminUser>('/api/auth/avatar', {
+				method: 'PATCH',
+				body: JSON.stringify({ avatar_url: avatarUrl })
+			});
+			this.user = item;
+			toastStore.success('Đã cập nhật ảnh đại diện');
+			return item;
+		} catch (error) {
+			toastStore.error(error instanceof Error ? error.message : 'Không thể cập nhật ảnh đại diện');
+			return null;
+		} finally {
+			this.isUpdatingAvatar = false;
+		}
 	}
 }
 

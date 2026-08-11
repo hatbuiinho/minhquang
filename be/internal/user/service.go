@@ -95,6 +95,54 @@ func (s *Service) Logout(ctx context.Context, token string) error {
 	return s.store.DeleteSession(ctx, hashToken(token))
 }
 
+func (s *Service) ChangePassword(ctx context.Context, item User, currentPassword, newPassword, currentToken string) error {
+	if item.ID == "" {
+		return ErrInvalidCredentials
+	}
+	if bcrypt.CompareHashAndPassword([]byte(item.PasswordHash), []byte(currentPassword)) != nil {
+		return ErrCurrentPassword
+	}
+	if len(newPassword) < 8 {
+		return fmt.Errorf("%w: password must contain at least 8 characters", ErrInvalidInput)
+	}
+	if currentPassword == newPassword {
+		return fmt.Errorf("%w: new password must be different from current password", ErrInvalidInput)
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("hash password: %w", err)
+	}
+	return s.store.ChangePassword(ctx, item.ID, string(hash), s.now().UTC(), hashToken(currentToken))
+}
+
+func (s *Service) UpdateProfile(ctx context.Context, item User, username, displayName string) (User, error) {
+	if item.ID == "" {
+		return User{}, ErrInvalidCredentials
+	}
+	username = strings.ToLower(strings.TrimSpace(username))
+	displayName = strings.TrimSpace(displayName)
+	if username == "" || displayName == "" {
+		return User{}, fmt.Errorf("%w: username and display_name are required", ErrInvalidInput)
+	}
+	item.Username = username
+	item.DisplayName = displayName
+	item.UpdatedAt = s.now().UTC()
+	return s.store.UpdateProfile(ctx, item)
+}
+
+func (s *Service) UpdateAvatar(ctx context.Context, item User, avatarURL string) (User, error) {
+	if item.ID == "" {
+		return User{}, ErrInvalidCredentials
+	}
+	avatarURL = strings.TrimSpace(avatarURL)
+	if len(avatarURL) > 2048 || (avatarURL != "" && !strings.HasPrefix(avatarURL, "https://") && !strings.HasPrefix(avatarURL, "http://")) {
+		return User{}, fmt.Errorf("%w: avatar_url must be an http(s) URL", ErrInvalidInput)
+	}
+	item.AvatarURL = avatarURL
+	item.UpdatedAt = s.now().UTC()
+	return s.store.UpdateAvatar(ctx, item)
+}
+
 func randomToken() (string, error) {
 	var value [32]byte
 	if _, err := rand.Read(value[:]); err != nil {

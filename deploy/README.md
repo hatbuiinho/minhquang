@@ -75,7 +75,17 @@ ANDROID_KEY_ALIAS
 ANDROID_KEY_PASSWORD
 DEPLOYGATE_API_TOKEN
 DEPLOYGATE_OWNER_NAME
+MINIO_ENDPOINT
+MINIO_ACCESS_KEY
+MINIO_SECRET_KEY
+MINIO_BUCKET
+MINIO_PUBLIC_BASE_URL
 ```
+
+Avatar uploads use the existing S3-compatible MinIO server. `MINIO_ENDPOINT`
+must be reachable by the user's browser because it is embedded in the presigned
+PUT URL. Configure the bucket for public `GET` and allow `PUT` CORS from the web
+app origin. Use `MINIO_USE_SSL=true` in production.
 
 `VITE_API_BASE_URL` is baked into the Android web bundle during release build,
 so it must point to the reachable production/staging API URL. If it is omitted,

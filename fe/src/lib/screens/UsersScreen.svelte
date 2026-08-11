@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { authStore } from '$lib/auth/auth-store.svelte';
 	import { userStore } from '$lib/users/user-store.svelte';
+	import PasswordInput from '$lib/ui/PasswordInput.svelte';
+	import { changePasswordPopupStore } from '$lib/auth/change-password-popup-store.svelte';
 
 	let showForm = $state(false);
 	let displayName = $state('');
@@ -62,15 +64,13 @@
 					autocomplete="off"
 					class="h-11 w-full rounded-md border-[var(--color-border-strong)]"
 				/>
-				<input
+				<PasswordInput
 					bind:value={password}
 					required
-					minlength="8"
-					type="password"
+					minlength={8}
 					placeholder="Mật khẩu (ít nhất 8 ký tự)"
-					aria-label="Mật khẩu"
+					ariaLabel="Mật khẩu"
 					autocomplete="new-password"
-					class="h-11 w-full rounded-md border-[var(--color-border-strong)]"
 				/>
 				<button
 					type="submit"
@@ -87,16 +87,30 @@
 					class="flex items-center gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-3"
 				>
 					<span
-						class="grid h-10 w-10 place-items-center rounded-full bg-[var(--color-primary-soft)] text-sm font-semibold text-[var(--color-primary-dark)]"
-						>{user.display_name.slice(0, 1).toUpperCase()}</span
+						class="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--color-primary-soft)] text-sm font-semibold text-[var(--color-primary-dark)]"
 					>
+						{#if user.avatar_url}<img
+								src={user.avatar_url}
+								alt=""
+								class="h-full w-full object-cover"
+							/>{:else}{user.display_name.slice(0, 1).toUpperCase()}{/if}
+					</span>
 					<div class="min-w-0 flex-1">
 						<p class="truncate text-sm font-semibold">{user.display_name}</p>
 						<p class="truncate text-xs text-[var(--color-text-secondary)]">@{user.username}</p>
 					</div>
-					{#if user.id === authStore.user?.id}<span class="text-xs text-[var(--color-primary)]"
-							>Bạn</span
-						>{/if}
+					{#if user.id === authStore.user?.id}
+						<span class="text-xs text-[var(--color-primary)]">Bạn</span>
+						<button
+							type="button"
+							class="grid h-9 w-9 shrink-0 place-items-center rounded-md text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-primary-dark)]"
+							aria-label="Đổi mật khẩu"
+							title="Đổi mật khẩu"
+							onclick={() => changePasswordPopupStore.show()}
+						>
+							<span class="icon-[lucide--key-round] h-4.5 w-4.5" aria-hidden="true"></span>
+						</button>
+					{/if}
 				</li>
 			{/each}
 		</ul>

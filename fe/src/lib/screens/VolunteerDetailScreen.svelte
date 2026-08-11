@@ -11,12 +11,16 @@
 	import { volunteerStatus } from '$lib/volunteers/status';
 	import LoadingIndicator from '$lib/ui/LoadingIndicator.svelte';
 	import { popupStore } from '$lib/ui/popup-store.svelte';
+	import AvatarUploader from '$lib/ui/AvatarUploader.svelte';
+	import { uploadAvatar } from '$lib/uploads/api';
+	import { toastStore } from '$lib/ui/toast-store.svelte';
 
 	let { volunteerId }: { volunteerId: string } = $props();
 	let item = $derived(volunteerStore.selected?.id === volunteerId ? volunteerStore.selected : null);
 	let loading = $state(true);
 	let clock = $state(Date.now());
 	let status = $derived(volunteerStatus(item?.departure_date, new Date(clock)));
+	let avatarUploading = $state(false);
 
 	onMount(() => {
 		void volunteerStore.fetch(volunteerId).finally(() => (loading = false));
@@ -34,6 +38,18 @@
 		});
 		if (accepted && (await volunteerStore.remove(volunteerId))) router.replace('/volunteers');
 	}
+
+	async function selectAvatar(file: File) {
+		avatarUploading = true;
+		try {
+			const avatarURL = await uploadAvatar(file);
+			await volunteerStore.updateAvatar(volunteerId, avatarURL);
+		} catch (error) {
+			toastStore.error(error instanceof Error ? error.message : 'Không thể tải ảnh lên');
+		} finally {
+			avatarUploading = false;
+		}
+	}
 </script>
 
 <section class="h-full overflow-y-auto px-4 py-4 md:px-6 md:py-6 lg:px-8">
@@ -41,16 +57,14 @@
 		{#if loading}
 			<div class="py-16"><LoadingIndicator label="Đang tải Huynh đệ..." /></div>
 		{:else if item}
-			<div class="flex items-center gap-4 border-b border-[var(--color-border)] pb-5">
-				{#if item.avatar_url}
-					<img src={item.avatar_url} alt="" class="h-20 w-20 rounded-full object-cover" />
-				{:else}
-					<span
-						class="grid h-20 w-20 place-items-center rounded-full bg-[var(--color-primary-soft)] text-2xl font-semibold text-[var(--color-primary-dark)]"
-						>{item.full_name.slice(0, 1).toUpperCase()}</span
-					>
-				{/if}
-				<div class="min-w-0">
+			<div class="border-b border-[var(--color-border)] pb-5">
+				<AvatarUploader
+					avatarUrl={item.avatar_url}
+					displayName={item.full_name}
+					uploading={avatarUploading || volunteerStore.isAvatarSaving}
+					onselect={selectAvatar}
+				/>
+				<div class="mt-5 min-w-0">
 					<h2 class="truncate text-xl font-semibold">{item.full_name}</h2>
 					<p class="mt-1 text-sm text-[var(--color-text-secondary)]">
 						{item.dharma_name || 'Chưa có pháp danh'}

@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -15,6 +16,7 @@ import (
 	"minhquang/be/internal/device"
 	"minhquang/be/internal/httpapi"
 	"minhquang/be/internal/ota"
+	"minhquang/be/internal/storage"
 	"minhquang/be/internal/user"
 	"minhquang/be/internal/volunteer"
 )
@@ -44,12 +46,31 @@ func main() {
 	}
 	otaStorageDir := env("OTA_STORAGE_DIR", "storage/ota")
 	otaService := ota.NewService(otaStorageDir)
-	router := httpapi.NewRouter(deviceService, userService, volunteerService, departmentService, otaService, otaStorageDir)
+	objectStorage := newObjectStorage()
+	router := httpapi.NewRouter(deviceService, userService, volunteerService, departmentService, otaService, otaStorageDir, objectStorage)
 
 	log.Printf("api listening on %s", addr)
 	if err := http.ListenAndServe(addr, router); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func newObjectStorage() *storage.MinIO {
+	endpoint := os.Getenv("MINIO_ENDPOINT")
+	if endpoint == "" {
+		log.Printf("MINIO_ENDPOINT is not set; avatar uploads are disabled")
+		return nil
+	}
+	useSSL, _ := strconv.ParseBool(env("MINIO_USE_SSL", "false"))
+	client, err := storage.NewMinIO(storage.Config{
+		Endpoint: endpoint, AccessKey: os.Getenv("MINIO_ACCESS_KEY"), SecretKey: os.Getenv("MINIO_SECRET_KEY"),
+		Bucket: os.Getenv("MINIO_BUCKET"), Region: env("MINIO_REGION", "us-east-1"), UseSSL: useSSL,
+		PublicBase: os.Getenv("MINIO_PUBLIC_BASE_URL"),
+	})
+	if err != nil {
+		log.Fatalf("configure object storage: %v", err)
+	}
+	return client
 }
 
 func env(key string, fallback string) string {

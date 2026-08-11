@@ -46,6 +46,11 @@ class UserStore {
 			this.isSaving = false;
 		}
 	}
+
+	sync(item: AdminUser) {
+		if (!this.loaded) return;
+		this.items = this.items.map((candidate) => (candidate.id === item.id ? item : candidate));
+	}
 }
 
 function message(error: unknown) {

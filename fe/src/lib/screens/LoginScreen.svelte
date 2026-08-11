@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Logo from '$lib/ui/Logo.svelte';
 	import { authStore } from '$lib/auth/auth-store.svelte';
+	import PasswordInput from '$lib/ui/PasswordInput.svelte';
 
 	let username = $state('');
 	let password = $state('');
@@ -32,16 +33,15 @@
 					class="h-12 w-full rounded-md border-[var(--color-border-strong)]"
 				/>
 			</label>
-			<label class="block">
+			<div>
 				<span class="mb-1.5 block text-sm font-medium">Mật khẩu</span>
-				<input
+				<PasswordInput
 					bind:value={password}
-					type="password"
 					autocomplete="current-password"
 					required
-					class="h-12 w-full rounded-md border-[var(--color-border-strong)]"
+					inputClass="h-12"
 				/>
-			</label>
+			</div>
 			{#if authStore.error}
 				<p class="text-sm text-[var(--color-danger)]">{authStore.error}</p>
 			{/if}

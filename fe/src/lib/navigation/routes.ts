@@ -1,5 +1,6 @@
 export type MainRouteName = 'volunteers' | 'departments' | 'users';
-export type RouteName = MainRouteName | 'volunteer-detail' | 'volunteer-new' | 'volunteer-edit';
+export type RouteName =
+	MainRouteName | 'profile' | 'volunteer-detail' | 'volunteer-new' | 'volunteer-edit';
 
 export type AppRoute = {
 	name: RouteName;
@@ -46,11 +47,13 @@ export function parseRoute(pathname: string): AppRoute {
 			volunteerId: decodeURIComponent(detail[1])
 		};
 	if (path === '/users') return { name: 'users', path, title: 'Tài khoản quản trị' };
+	if (path === '/profile') return { name: 'profile', path, title: 'Hồ sơ cá nhân' };
 	if (path === '/departments') return { name: 'departments', path, title: 'Quản lý phân ban' };
 	return { name: 'volunteers', path: '/volunteers', title: 'Huynh đệ công quả' };
 }
 
 export function mainRouteFor(route: AppRoute): MainRouteName {
 	if (route.name === 'users' || route.name === 'departments') return route.name;
+	if (route.name === 'profile') return 'users';
 	return 'volunteers';
 }

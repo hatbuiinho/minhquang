@@ -9,6 +9,7 @@
 	import VolunteerDetailScreen from '$lib/screens/VolunteerDetailScreen.svelte';
 	import UsersScreen from '$lib/screens/UsersScreen.svelte';
 	import DepartmentsScreen from '$lib/screens/DepartmentsScreen.svelte';
+	import ProfileScreen from '$lib/screens/ProfileScreen.svelte';
 	import LoadingIndicator from '$lib/ui/LoadingIndicator.svelte';
 	import Popup from '$lib/ui/Popup.svelte';
 	import { popupStore } from '$lib/ui/popup-store.svelte';
@@ -18,6 +19,7 @@
 	import DesktopSidebar from './DesktopSidebar.svelte';
 	import TopBar from './TopBar.svelte';
 	import VolunteerRouteModal from './VolunteerRouteModal.svelte';
+	import ChangePasswordPopup from '$lib/auth/ChangePasswordPopup.svelte';
 
 	let route = $derived(router.current);
 	let isFormRoute = $derived(route.name === 'volunteer-new' || route.name === 'volunteer-edit');
@@ -71,6 +73,8 @@
 					{/if}
 				{:else if route.name === 'users'}
 					<UsersScreen />
+				{:else if route.name === 'profile'}
+					<ProfileScreen />
 				{:else if route.name === 'departments'}
 					<DepartmentsScreen />
 				{/if}
@@ -86,6 +90,7 @@
 	tone={toastStore.tone}
 	onClose={() => toastStore.close()}
 />
+<ChangePasswordPopup />
 <Popup open={popupStore.open} title={popupStore.title} onClose={() => popupStore.cancel()}>
 	<p class="text-sm leading-6 text-[var(--color-text-secondary)]">{popupStore.message}</p>
 	{#snippet footer()}

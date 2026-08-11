@@ -44,6 +44,7 @@ class VolunteerStore {
 	isLoadingMore = $state(false);
 	isSaving = $state(false);
 	isBulkSaving = $state(false);
+	isAvatarSaving = $state(false);
 	loaded = $state(false);
 	lastLoadedAt = $state(0);
 	private loadedQuery = '';
@@ -231,6 +232,24 @@ class VolunteerStore {
 		} catch (error) {
 			toastStore.error(message(error));
 			return false;
+		}
+	}
+
+	async updateAvatar(id: string, avatarURL: string): Promise<Volunteer | null> {
+		if (this.isAvatarSaving) return null;
+		this.isAvatarSaving = true;
+		try {
+			await bulkUpdateVolunteers([id], 'avatar_url', avatarURL);
+			const item = await getVolunteer(id);
+			this.selected = item;
+			this.items = this.items.map((candidate) => (candidate.id === id ? item : candidate));
+			toastStore.success('Đã cập nhật ảnh đại diện');
+			return item;
+		} catch (error) {
+			toastStore.error(message(error));
+			return null;
+		} finally {
+			this.isAvatarSaving = false;
 		}
 	}
 

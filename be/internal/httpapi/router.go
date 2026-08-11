@@ -11,6 +11,7 @@ import (
 	"minhquang/be/internal/device"
 	"minhquang/be/internal/docs"
 	"minhquang/be/internal/ota"
+	"minhquang/be/internal/storage"
 	"minhquang/be/internal/user"
 	"minhquang/be/internal/volunteer"
 )
@@ -22,6 +23,7 @@ func NewRouter(
 	departments *department.Service,
 	updates *ota.Service,
 	otaStorageDir string,
+	objectStorage *storage.MinIO,
 ) http.Handler {
 	mux := http.NewServeMux()
 	deviceHandler := NewDeviceHandler(devices)
@@ -30,6 +32,7 @@ func NewRouter(
 	volunteerHandler := NewVolunteerHandler(volunteers)
 	departmentHandler := NewDepartmentHandler(departments)
 	otaHandler := NewOTAHandler(updates)
+	uploadHandler := NewUploadHandler(objectStorage)
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
@@ -43,6 +46,10 @@ func NewRouter(
 	protected := http.NewServeMux()
 	protected.HandleFunc("/api/auth/logout", authHandler.Logout)
 	protected.HandleFunc("/api/auth/me", authHandler.Me)
+	protected.HandleFunc("/api/auth/password", authHandler.ChangePassword)
+	protected.HandleFunc("/api/auth/profile", authHandler.UpdateProfile)
+	protected.HandleFunc("/api/auth/avatar", authHandler.UpdateAvatar)
+	protected.HandleFunc("/api/uploads/presign", uploadHandler.Presign)
 	protected.HandleFunc("/api/users", userHandler.Collection)
 	protected.HandleFunc("/api/volunteers", volunteerHandler.Collection)
 	protected.HandleFunc("/api/volunteers/bulk", volunteerHandler.Bulk)

@@ -78,3 +78,46 @@ func (s *MemoryStore) DeleteSession(_ context.Context, tokenHash string) error {
 	delete(s.sessions, tokenHash)
 	return nil
 }
+
+func (s *MemoryStore) ChangePassword(_ context.Context, userID, passwordHash string, updatedAt time.Time, keepTokenHash string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	item, exists := s.users[userID]
+	if !exists {
+		return ErrNotFound
+	}
+	item.PasswordHash = passwordHash
+	item.UpdatedAt = updatedAt
+	s.users[userID] = item
+	for tokenHash, session := range s.sessions {
+		if session.UserID == userID && tokenHash != keepTokenHash {
+			delete(s.sessions, tokenHash)
+		}
+	}
+	return nil
+}
+
+func (s *MemoryStore) UpdateProfile(_ context.Context, item User) (User, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, exists := s.users[item.ID]; !exists {
+		return User{}, ErrNotFound
+	}
+	for id, existing := range s.users {
+		if id != item.ID && existing.Username == item.Username {
+			return User{}, ErrUsernameExists
+		}
+	}
+	s.users[item.ID] = item
+	return item, nil
+}
+
+func (s *MemoryStore) UpdateAvatar(_ context.Context, item User) (User, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, exists := s.users[item.ID]; !exists {
+		return User{}, ErrNotFound
+	}
+	s.users[item.ID] = item
+	return item, nil
+}

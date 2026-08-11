@@ -6,6 +6,7 @@ type User struct {
 	ID           string    `json:"id"`
 	Username     string    `json:"username"`
 	DisplayName  string    `json:"display_name"`
+	AvatarURL    string    `json:"avatar_url"`
 	PasswordHash string    `json:"-"`
 	Role         string    `json:"role"`
 	Active       bool      `json:"active"`
