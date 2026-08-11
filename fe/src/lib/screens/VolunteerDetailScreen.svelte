@@ -26,8 +26,8 @@
 
 	async function remove() {
 		const accepted = await popupStore.confirm({
-			title: 'Xoá hồ sơ',
-			message: 'Hồ sơ này sẽ bị xoá vĩnh viễn.',
+			title: 'Xoá Huynh đệ',
+			message: 'Huynh đệ này sẽ bị xoá vĩnh viễn.',
 			confirmLabel: 'Xoá',
 			cancelLabel: 'Huỷ',
 			tone: 'danger'
@@ -39,7 +39,7 @@
 <section class="h-full overflow-y-auto px-4 py-4 md:px-6 md:py-6 lg:px-8">
 	<div class="mx-auto max-w-5xl">
 		{#if loading}
-			<div class="py-16"><LoadingIndicator label="Đang tải hồ sơ..." /></div>
+			<div class="py-16"><LoadingIndicator label="Đang tải Huynh đệ..." /></div>
 		{:else if item}
 			<div class="flex items-center gap-4 border-b border-[var(--color-border)] pb-5">
 				{#if item.avatar_url}

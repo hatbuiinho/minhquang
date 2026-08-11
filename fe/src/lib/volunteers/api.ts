@@ -31,12 +31,41 @@ export type VolunteerInput = {
 	departure_date: string;
 };
 
-export async function listVolunteers(query = '', status = ''): Promise<Volunteer[]> {
+export type VolunteerSortKey =
+	| 'full_name'
+	| 'dharma_name'
+	| 'birth_date'
+	| 'cultivation_place'
+	| 'department'
+	| 'phone'
+	| 'arrival_date'
+	| 'departure_date'
+	| 'status';
+
+export type VolunteerPage = {
+	volunteers: Volunteer[];
+	total: number;
+	has_more: boolean;
+};
+
+export async function listVolunteers(
+	query = '',
+	status = '',
+	departmentId = '',
+	limit = 20,
+	offset = 0,
+	sortBy: VolunteerSortKey = 'arrival_date',
+	sortDirection: 'asc' | 'desc' = 'desc'
+): Promise<VolunteerPage> {
 	const params = new URLSearchParams();
 	if (query) params.set('q', query);
 	if (status) params.set('status', status);
-	const result = await apiRequest<{ volunteers: Volunteer[] }>(`/api/volunteers?${params}`);
-	return result.volunteers;
+	if (departmentId) params.set('department_id', departmentId);
+	params.set('limit', String(limit));
+	params.set('offset', String(offset));
+	params.set('sort_by', sortBy);
+	params.set('sort_direction', sortDirection);
+	return apiRequest<VolunteerPage>(`/api/volunteers?${params}`);
 }
 
 export function getVolunteer(id: string) {

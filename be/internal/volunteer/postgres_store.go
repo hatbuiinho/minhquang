@@ -25,8 +25,18 @@ func (s *PostgresStore) Create(ctx context.Context, item Volunteer) (Volunteer, 
 }
 
 func (s *PostgresStore) List(ctx context.Context, options ListOptions) ([]Volunteer, error) {
-	query := `SELECT ` + volunteerSelectColumns + ` FROM volunteers v LEFT JOIN departments d ON d.id=v.department_id WHERE ($1 = '' OR unaccent(lower(concat_ws(' ', v.full_name, v.dharma_name, v.birth_date, v.cultivation_place, v.phone, d.name, v.notes))) LIKE '%' || unaccent(lower($1)) || '%') AND ($2 = '' OR ($2 = 'active' AND (v.departure_date IS NULL OR v.departure_date >= $3)) OR ($2 = 'departed' AND v.departure_date < $3)) ORDER BY v.arrival_date DESC, v.full_name ASC`
-	rows, err := s.pool.Query(ctx, query, options.Query, options.Status, options.Today)
+	orderColumns := map[string]string{
+		"full_name": "v.full_name", "dharma_name": "v.dharma_name", "birth_date": "v.birth_date",
+		"cultivation_place": "v.cultivation_place", "department": "COALESCE(d.name, '')", "phone": "v.phone",
+		"arrival_date": "v.arrival_date", "departure_date": "v.departure_date",
+		"status": "CASE WHEN v.departure_date IS NOT NULL AND v.departure_date < $3 THEN 'departed' ELSE 'active' END",
+	}
+	direction := "ASC"
+	if options.SortDirection == "desc" {
+		direction = "DESC"
+	}
+	query := fmt.Sprintf(`SELECT %s FROM volunteers v LEFT JOIN departments d ON d.id=v.department_id WHERE ($1 = '' OR unaccent(lower(concat_ws(' ', v.full_name, v.dharma_name, v.birth_date, v.cultivation_place, v.phone, d.name, v.notes))) LIKE '%%' || unaccent(lower($1)) || '%%') AND ($2 = '' OR ($2 = 'active' AND (v.departure_date IS NULL OR v.departure_date >= $3)) OR ($2 = 'departed' AND v.departure_date < $3)) AND ($4 = '' OR v.department_id=$4) ORDER BY %s %s NULLS LAST, v.id ASC LIMIT NULLIF($5, 0) OFFSET $6`, volunteerSelectColumns, orderColumns[options.SortBy], direction)
+	rows, err := s.pool.Query(ctx, query, options.Query, options.Status, options.Today, options.DepartmentID, options.Limit, options.Offset)
 	if err != nil {
 		return nil, fmt.Errorf("list volunteers: %w", err)
 	}
@@ -40,6 +50,15 @@ func (s *PostgresStore) List(ctx context.Context, options ListOptions) ([]Volunt
 		items = append(items, item)
 	}
 	return items, rows.Err()
+}
+
+func (s *PostgresStore) Count(ctx context.Context, options ListOptions) (int, error) {
+	const query = `SELECT COUNT(*) FROM volunteers v LEFT JOIN departments d ON d.id=v.department_id WHERE ($1 = '' OR unaccent(lower(concat_ws(' ', v.full_name, v.dharma_name, v.birth_date, v.cultivation_place, v.phone, d.name, v.notes))) LIKE '%' || unaccent(lower($1)) || '%') AND ($2 = '' OR ($2 = 'active' AND (v.departure_date IS NULL OR v.departure_date >= $3)) OR ($2 = 'departed' AND v.departure_date < $3)) AND ($4 = '' OR v.department_id=$4)`
+	var total int
+	if err := s.pool.QueryRow(ctx, query, options.Query, options.Status, options.Today, options.DepartmentID).Scan(&total); err != nil {
+		return 0, fmt.Errorf("count volunteers: %w", err)
+	}
+	return total, nil
 }
 
 func (s *PostgresStore) Get(ctx context.Context, id string) (Volunteer, error) {

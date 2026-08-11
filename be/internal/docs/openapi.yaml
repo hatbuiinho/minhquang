@@ -95,7 +95,7 @@ paths:
   /api/volunteers:
     get:
       tags: [Volunteers]
-      summary: Danh sách hồ sơ công quả
+      summary: Danh sách Huynh đệ công quả
       security: [{ bearerAuth: [] }]
       parameters:
         - name: q
@@ -105,12 +105,35 @@ paths:
         - name: status
           in: query
           schema: { type: string, enum: [active, departed] }
+        - name: department_id
+          in: query
+          schema: { type: string }
+          description: Lọc chính xác theo ID phân ban.
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: offset
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [full_name, dharma_name, birth_date, cultivation_place, department, phone, arrival_date, departure_date, status]
+            default: arrival_date
+        - name: sort_direction
+          in: query
+          schema: { type: string, enum: [asc, desc], default: desc }
       responses:
         "200":
-          description: Danh sách hồ sơ
+          description: Danh sách Huynh đệ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VolunteerPage"
     post:
       tags: [Volunteers]
-      summary: Thêm hồ sơ công quả
+      summary: Thêm Huynh đệ công quả
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
@@ -120,7 +143,7 @@ paths:
               $ref: "#/components/schemas/VolunteerInput"
       responses:
         "201":
-          description: Hồ sơ đã tạo
+          description: Huynh đệ đã tạo
           content:
             application/json:
               schema:
@@ -133,18 +156,18 @@ paths:
         schema: { type: string }
     get:
       tags: [Volunteers]
-      summary: Xem hồ sơ
+      summary: Xem Huynh đệ
       security: [{ bearerAuth: [] }]
       responses:
         "200":
-          description: Chi tiết hồ sơ
+          description: Chi tiết Huynh đệ
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Volunteer"
     put:
       tags: [Volunteers]
-      summary: Cập nhật hồ sơ
+      summary: Cập nhật Huynh đệ
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
@@ -154,14 +177,14 @@ paths:
               $ref: "#/components/schemas/VolunteerInput"
       responses:
         "200":
-          description: Hồ sơ đã cập nhật
+          description: Huynh đệ đã cập nhật
     delete:
       tags: [Volunteers]
-      summary: Xoá hồ sơ
+      summary: Xoá Huynh đệ
       security: [{ bearerAuth: [] }]
       responses:
         "204":
-          description: Đã xoá hồ sơ
+          description: Đã xoá Huynh đệ
   /api/volunteer-options/departments:
     get:
       tags: [Volunteers]
@@ -191,7 +214,7 @@ paths:
           schema: { type: string, enum: [all, "true", "false"], default: all }
       responses:
         "200":
-          description: Danh sách phân ban và số hồ sơ đang sử dụng
+          description: Danh sách phân ban và số Huynh đệ đang sử dụng
     post:
       tags: [Departments]
       summary: Thêm phân ban
@@ -222,11 +245,11 @@ paths:
         "200": { description: Phân ban đã cập nhật }
     delete:
       tags: [Departments]
-      summary: Xoá phân ban chưa có hồ sơ sử dụng
+      summary: Xoá phân ban chưa có Huynh đệ sử dụng
       security: [{ bearerAuth: [] }]
       responses:
         "204": { description: Đã xoá phân ban }
-        "409": { description: Phân ban đang có hồ sơ sử dụng }
+        "409": { description: Phân ban đang có Huynh đệ sử dụng }
   /api/departments/{id}/status:
     patch:
       tags: [Departments]
@@ -293,13 +316,26 @@ components:
             status: { type: string, enum: [active, departed] }
             created_at: { type: string, format: date-time }
             updated_at: { type: string, format: date-time }
+    VolunteerPage:
+      type: object
+      required: [volunteers, total, has_more]
+      properties:
+        volunteers:
+          type: array
+          items: { $ref: "#/components/schemas/Volunteer" }
+        total: { type: integer, minimum: 0 }
+        has_more: { type: boolean }
     Department:
       type: object
-      required: [id, name, active, volunteer_count, created_at, updated_at]
+      required: [id, name, active, volunteer_count, active_volunteer_count, created_at, updated_at]
       properties:
         id: { type: string }
         name: { type: string, maxLength: 60 }
         active: { type: boolean }
         volunteer_count: { type: integer, minimum: 0 }
+        active_volunteer_count:
+          type: integer
+          minimum: 0
+          description: Số Huynh đệ đang công quả theo ngày hiện tại tại Việt Nam.
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }

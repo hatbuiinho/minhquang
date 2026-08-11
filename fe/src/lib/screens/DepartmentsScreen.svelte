@@ -1,8 +1,10 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { departmentStore, type DepartmentFilter } from '$lib/departments/department-store.svelte';
 	import type { Department } from '$lib/departments/api';
 	import { popupStore } from '$lib/ui/popup-store.svelte';
+	import { router } from '$lib/navigation/router.svelte';
+	import { volunteerStore } from '$lib/volunteers/volunteer-store.svelte';
 	import LoadingIndicator from '$lib/ui/LoadingIndicator.svelte';
 
 	let showCreate = $state(false);
@@ -41,9 +43,28 @@
 		showCreate = false;
 	}
 
-	function beginEdit(item: Department) {
+	async function toggleCreate() {
+		showCreate = !showCreate;
+		if (!showCreate) return;
+		editingID = '';
+		await focusVisibleInput('[data-department-create-input]');
+	}
+
+	async function beginEdit(item: Department) {
+		showCreate = false;
 		editingID = item.id;
 		editingName = item.name;
+		await focusVisibleInput('[data-department-edit-input]');
+	}
+
+	async function focusVisibleInput(selector: string) {
+		await tick();
+		const input = [...document.querySelectorAll<HTMLInputElement>(selector)].find(
+			(candidate) => candidate.offsetParent !== null
+		);
+		input?.focus();
+		const end = input?.value.length ?? 0;
+		input?.setSelectionRange(end, end);
 	}
 
 	async function rename(event: SubmitEvent) {
@@ -68,12 +89,17 @@
 			title: 'Xoá phân ban?',
 			message:
 				item.volunteer_count > 0
-					? `${item.name} đang có ${item.volunteer_count} hồ sơ nên không thể xoá.`
+					? `${item.name} đang có ${item.volunteer_count} Huynh đệ nên không thể xoá.`
 					: `Phân ban ${item.name} sẽ bị xoá vĩnh viễn.`,
 			confirmLabel: 'Xoá',
 			tone: 'danger'
 		});
 		if (confirmed && item.volunteer_count === 0) await departmentStore.remove(item.id);
+	}
+
+	function openVolunteerList(item: Department) {
+		volunteerStore.filterByDepartment(item.id, item.name);
+		router.openMain('volunteers');
 	}
 </script>
 
@@ -90,7 +116,7 @@
 				type="button"
 				class="grid h-10 w-10 place-items-center rounded-md bg-[var(--color-primary)] text-white"
 				aria-label={showCreate ? 'Đóng biểu mẫu' : 'Thêm phân ban'}
-				onclick={() => (showCreate = !showCreate)}
+				onclick={toggleCreate}
 			>
 				<span
 					class={showCreate ? 'icon-[lucide--x] h-5 w-5' : 'icon-[lucide--plus] h-5 w-5'}
@@ -102,6 +128,7 @@
 		{#if showCreate}
 			<form class="mb-4 flex max-w-xl gap-2" onsubmit={create}>
 				<input
+					data-department-create-input
 					bind:value={createName}
 					required
 					maxlength="60"
@@ -172,6 +199,7 @@
 						{#if editingID === item.id}
 							<form class="flex gap-2" onsubmit={rename}>
 								<input
+									data-department-edit-input
 									bind:value={editingName}
 									required
 									maxlength="60"
@@ -194,10 +222,12 @@
 								>
 							</form>
 						{:else}
-							<div class="flex items-center gap-3">
-								<div class="min-w-0 flex-1">
-									<div class="flex items-center gap-2">
-										<p class="truncate text-sm font-semibold">{item.name}</p>
+							<div>
+								<div class="min-w-0">
+									<div class="flex items-start gap-2">
+										<p class="min-w-0 flex-1 text-sm leading-5 font-semibold break-words">
+											{item.name}
+										</p>
 										<span
 											class={[
 												'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold',
@@ -208,41 +238,54 @@
 										>
 									</div>
 									<p class="mt-1 text-xs text-[var(--color-text-secondary)]">
-										{item.volunteer_count} hồ sơ
+										{item.active_volunteer_count} đang công quả
 									</p>
 								</div>
-								<button
-									type="button"
-									class="grid h-9 w-9 place-items-center rounded-md text-[var(--color-text-secondary)]"
-									aria-label="Sửa tên"
-									title="Sửa tên"
-									onclick={() => beginEdit(item)}
-									><span class="icon-[lucide--pencil] h-4 w-4" aria-hidden="true"></span></button
+								<div
+									class="mt-3 flex items-center justify-end gap-1 border-t border-[var(--color-border)] pt-2"
 								>
-								<button
-									type="button"
-									class="grid h-9 w-9 place-items-center rounded-md text-[var(--color-text-secondary)]"
-									aria-label={item.active ? 'Ngừng sử dụng' : 'Mở lại'}
-									title={item.active ? 'Ngừng sử dụng' : 'Mở lại'}
-									onclick={() => void toggle(item)}
-									><span
-										class={item.active
-											? 'icon-[lucide--eye-off] h-4 w-4'
-											: 'icon-[lucide--eye] h-4 w-4'}
-										aria-hidden="true"
-									></span></button
-								>
-								<button
-									type="button"
-									disabled={item.volunteer_count > 0}
-									class="grid h-9 w-9 place-items-center rounded-md text-[var(--color-danger)] disabled:opacity-30"
-									aria-label="Xoá phân ban"
-									title={item.volunteer_count > 0
-										? 'Không thể xoá phân ban đang có hồ sơ'
-										: 'Xoá phân ban'}
-									onclick={() => void remove(item)}
-									><span class="icon-[lucide--trash-2] h-4 w-4" aria-hidden="true"></span></button
-								>
+									<button
+										type="button"
+										class="grid h-9 w-9 place-items-center rounded-md text-[var(--color-primary-dark)]"
+										aria-label="Xem danh sách đang công quả"
+										title="Xem danh sách đang công quả"
+										onclick={() => openVolunteerList(item)}
+										><span class="icon-[lucide--list-filter] h-4 w-4" aria-hidden="true"
+										></span></button
+									>
+									<button
+										type="button"
+										class="grid h-9 w-9 place-items-center rounded-md text-[var(--color-text-secondary)]"
+										aria-label="Sửa tên"
+										title="Sửa tên"
+										onclick={() => beginEdit(item)}
+										><span class="icon-[lucide--pencil] h-4 w-4" aria-hidden="true"></span></button
+									>
+									<button
+										type="button"
+										class="grid h-9 w-9 place-items-center rounded-md text-[var(--color-text-secondary)]"
+										aria-label={item.active ? 'Ngừng sử dụng' : 'Mở lại'}
+										title={item.active ? 'Ngừng sử dụng' : 'Mở lại'}
+										onclick={() => void toggle(item)}
+										><span
+											class={item.active
+												? 'icon-[lucide--eye-off] h-4 w-4'
+												: 'icon-[lucide--eye] h-4 w-4'}
+											aria-hidden="true"
+										></span></button
+									>
+									<button
+										type="button"
+										disabled={item.volunteer_count > 0}
+										class="grid h-9 w-9 place-items-center rounded-md text-[var(--color-danger)] disabled:opacity-30"
+										aria-label="Xoá phân ban"
+										title={item.volunteer_count > 0
+											? 'Không thể xoá phân ban đang có Huynh đệ'
+											: 'Xoá phân ban'}
+										onclick={() => void remove(item)}
+										><span class="icon-[lucide--trash-2] h-4 w-4" aria-hidden="true"></span></button
+									>
+								</div>
 							</div>
 						{/if}
 					</li>
@@ -257,7 +300,7 @@
 					>
 						<tr>
 							<th class="w-[45%] px-4 py-3">Tên phân ban</th>
-							<th class="w-[18%] px-4 py-3">Số hồ sơ</th>
+							<th class="w-[18%] px-4 py-3">Đang công quả</th>
 							<th class="w-[18%] px-4 py-3">Trạng thái</th>
 							<th class="w-[19%] px-4 py-3 text-right">Thao tác</th>
 						</tr>
@@ -269,6 +312,7 @@
 									<td colspan="4" class="px-4 py-3">
 										<form class="flex max-w-2xl gap-2" onsubmit={rename}>
 											<input
+												data-department-edit-input
 												bind:value={editingName}
 												required
 												maxlength="60"
@@ -295,7 +339,7 @@
 								{:else}
 									<td class="truncate px-4 py-3 font-semibold">{item.name}</td>
 									<td class="px-4 py-3 text-[var(--color-text-secondary)]"
-										>{item.volunteer_count} hồ sơ</td
+										>{item.active_volunteer_count} người</td
 									>
 									<td class="px-4 py-3"
 										><span
@@ -309,6 +353,15 @@
 									>
 									<td class="px-4 py-2">
 										<div class="flex justify-end gap-1">
+											<button
+												type="button"
+												class="grid h-9 w-9 place-items-center rounded-md text-[var(--color-primary-dark)] hover:bg-[var(--color-primary-soft)]"
+												aria-label="Xem danh sách đang công quả"
+												title="Xem danh sách đang công quả"
+												onclick={() => openVolunteerList(item)}
+												><span class="icon-[lucide--list-filter] h-4 w-4" aria-hidden="true"
+												></span></button
+											>
 											<button
 												type="button"
 												class="grid h-9 w-9 place-items-center rounded-md text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-muted)]"
@@ -337,7 +390,7 @@
 												class="grid h-9 w-9 place-items-center rounded-md text-[var(--color-danger)] hover:bg-[var(--color-danger-soft)] disabled:opacity-30"
 												aria-label="Xoá phân ban"
 												title={item.volunteer_count > 0
-													? 'Không thể xoá phân ban đang có hồ sơ'
+													? 'Không thể xoá phân ban đang có Huynh đệ'
 													: 'Xoá phân ban'}
 												onclick={() => void remove(item)}
 												><span class="icon-[lucide--trash-2] h-4 w-4" aria-hidden="true"

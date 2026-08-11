@@ -40,7 +40,7 @@
 		>
 			<div class="min-w-0">
 				<p class="truncate text-base font-semibold">{route.title}</p>
-				<p class="mt-0.5 text-xs text-[var(--color-text-secondary)]">Hồ sơ Huynh đệ công quả</p>
+				<p class="mt-0.5 text-xs text-[var(--color-text-secondary)]">Huynh đệ công quả</p>
 			</div>
 			<div class="flex items-center gap-2">
 				{#if isForm}
@@ -51,7 +51,7 @@
 						class="flex h-10 items-center justify-center gap-2 rounded-md bg-[var(--color-primary)] px-4 text-sm font-semibold text-white disabled:opacity-50"
 					>
 						<span class="icon-[lucide--check] h-4 w-4" aria-hidden="true"></span>
-						Lưu hồ sơ
+						Lưu Huynh đệ
 					</button>
 				{/if}
 				<button

@@ -41,7 +41,12 @@ type Input struct {
 }
 
 type ListOptions struct {
-	Query  string
-	Status string
-	Today  time.Time
+	Query         string
+	Status        string
+	DepartmentID  string
+	Today         time.Time
+	Limit         int
+	Offset        int
+	SortBy        string
+	SortDirection string
 }

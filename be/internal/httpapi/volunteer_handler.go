@@ -3,6 +3,7 @@ package httpapi
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -31,12 +32,22 @@ func NewVolunteerHandler(volunteers *volunteer.Service) *VolunteerHandler {
 func (h *VolunteerHandler) Collection(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		items, err := h.volunteers.List(r.Context(), volunteer.ListOptions{Query: r.URL.Query().Get("q"), Status: r.URL.Query().Get("status")})
+		limit, offset, ok := readPagination(w, r)
+		if !ok {
+			return
+		}
+		options := volunteer.ListOptions{Query: r.URL.Query().Get("q"), Status: r.URL.Query().Get("status"), DepartmentID: r.URL.Query().Get("department_id"), Limit: limit, Offset: offset, SortBy: r.URL.Query().Get("sort_by"), SortDirection: r.URL.Query().Get("sort_direction")}
+		items, err := h.volunteers.List(r.Context(), options)
 		if err != nil {
 			handleVolunteerError(w, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string][]volunteer.Volunteer{"volunteers": items})
+		total, err := h.volunteers.Count(r.Context(), options)
+		if err != nil {
+			handleVolunteerError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"volunteers": items, "total": total, "has_more": offset+len(items) < total})
 	case http.MethodPost:
 		input, ok := readVolunteerInput(w, r)
 		if !ok {
@@ -53,10 +64,31 @@ func (h *VolunteerHandler) Collection(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func readPagination(w http.ResponseWriter, r *http.Request) (int, int, bool) {
+	limit, offset := 20, 0
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil || value < 1 || value > 100 {
+			writeError(w, http.StatusBadRequest, "invalid_input", "limit must be between 1 and 100")
+			return 0, 0, false
+		}
+		limit = value
+	}
+	if raw := r.URL.Query().Get("offset"); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil || value < 0 {
+			writeError(w, http.StatusBadRequest, "invalid_input", "offset must not be negative")
+			return 0, 0, false
+		}
+		offset = value
+	}
+	return limit, offset, true
+}
+
 func (h *VolunteerHandler) Item(w http.ResponseWriter, r *http.Request) {
 	id := strings.Trim(strings.TrimPrefix(r.URL.Path, "/api/volunteers/"), "/")
 	if id == "" || strings.Contains(id, "/") {
-		writeError(w, http.StatusNotFound, "not_found", "Không tìm thấy hồ sơ")
+		writeError(w, http.StatusNotFound, "not_found", "Không tìm thấy Huynh đệ")
 		return
 	}
 	switch r.Method {
@@ -117,7 +149,7 @@ func handleVolunteerError(w http.ResponseWriter, err error) {
 	case errors.Is(err, volunteer.ErrInvalidInput):
 		writeError(w, http.StatusBadRequest, "invalid_input", err.Error())
 	case errors.Is(err, volunteer.ErrNotFound):
-		writeError(w, http.StatusNotFound, "not_found", "Không tìm thấy hồ sơ")
+		writeError(w, http.StatusNotFound, "not_found", "Không tìm thấy Huynh đệ")
 	default:
 		writeError(w, http.StatusInternalServerError, "internal_error", "internal server error")
 	}

@@ -5,6 +5,7 @@
 **/build
 **/tmp
 **/.env
+fe/android
 be/secrets
 be/firebase-service-account.json
 *.jks

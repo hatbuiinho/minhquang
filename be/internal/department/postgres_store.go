@@ -14,7 +14,7 @@ type PostgresStore struct{ pool *pgxpool.Pool }
 
 func NewPostgresStore(pool *pgxpool.Pool) *PostgresStore { return &PostgresStore{pool: pool} }
 
-const departmentColumns = `d.id, d.name, d.active, COUNT(v.id), d.created_at, d.updated_at`
+const departmentColumns = `d.id, d.name, d.active, COUNT(v.id), COUNT(v.id) FILTER (WHERE v.departure_date IS NULL OR v.departure_date >= (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Ho_Chi_Minh')::date), d.created_at, d.updated_at`
 
 func (s *PostgresStore) Create(ctx context.Context, item Department, key string) (Department, error) {
 	_, err := s.pool.Exec(ctx, `INSERT INTO departments (id, name, search_key, active, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6)`, item.ID, item.Name, key, item.Active, item.CreatedAt, item.UpdatedAt)
@@ -32,7 +32,7 @@ func (s *PostgresStore) List(ctx context.Context, options ListOptions) ([]Depart
 		WHERE ($1 = '' OR unaccent(lower(d.name)) LIKE '%' || unaccent(lower($1)) || '%')
 		  AND ($2::boolean IS NULL OR d.active = $2)
 		GROUP BY d.id
-		ORDER BY d.active DESC, COUNT(v.id) DESC, d.name ASC
+		ORDER BY d.active DESC, 5 DESC, d.name ASC
 		LIMIT NULLIF($3, 0)
 	`
 	rows, err := s.pool.Query(ctx, query, options.Query, options.Active, options.Limit)
@@ -118,7 +118,7 @@ type scanner interface{ Scan(dest ...any) error }
 
 func scanDepartment(row scanner) (Department, error) {
 	var item Department
-	if err := row.Scan(&item.ID, &item.Name, &item.Active, &item.VolunteerCount, &item.CreatedAt, &item.UpdatedAt); err != nil {
+	if err := row.Scan(&item.ID, &item.Name, &item.Active, &item.VolunteerCount, &item.ActiveVolunteerCount, &item.CreatedAt, &item.UpdatedAt); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return Department{}, ErrNotFound
 		}

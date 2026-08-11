@@ -9,33 +9,12 @@
 	import { router } from '$lib/navigation/router.svelte';
 	import { volunteerStore } from '$lib/volunteers/volunteer-store.svelte';
 	import { vietnamDateKey } from '$lib/volunteers/status';
-	import type { Volunteer } from '$lib/volunteers/api';
+	import type { VolunteerSortKey } from '$lib/volunteers/api';
+	import { listDepartments, type Department } from '$lib/departments/api';
 	import LoadingIndicator from '$lib/ui/LoadingIndicator.svelte';
 
-	type SortKey =
-		| 'full_name'
-		| 'dharma_name'
-		| 'birth_date'
-		| 'cultivation_place'
-		| 'department'
-		| 'phone'
-		| 'arrival_date'
-		| 'departure_date'
-		| 'status';
-	type SortDirection = 'asc' | 'desc';
-
 	let searchTimer: ReturnType<typeof setTimeout> | undefined;
-	let sortKey = $state<SortKey>('arrival_date');
-	let sortDirection = $state<SortDirection>('desc');
-	let sortedItems = $derived.by(() =>
-		[...volunteerStore.items].sort((left, right) => {
-			const comparison = sortValue(left, sortKey).localeCompare(sortValue(right, sortKey), 'vi', {
-				numeric: true,
-				sensitivity: 'base'
-			});
-			return sortDirection === 'asc' ? comparison : -comparison;
-		})
-	);
+	let departments = $state<Department[]>([]);
 	const searchDebounceMs = 350;
 	const listCacheTtlMs = 45_000;
 
@@ -44,23 +23,30 @@
 		searchTimer = setTimeout(() => void volunteerStore.load(), searchDebounceMs);
 	}
 
-	function toggleSort(key: SortKey) {
-		if (sortKey === key) {
-			sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-			return;
+	function toggleSort(key: VolunteerSortKey) {
+		if (volunteerStore.sortKey === key) {
+			volunteerStore.sortDirection = volunteerStore.sortDirection === 'asc' ? 'desc' : 'asc';
+		} else {
+			volunteerStore.sortKey = key;
+			volunteerStore.sortDirection =
+				key === 'arrival_date' || key === 'departure_date' ? 'desc' : 'asc';
 		}
-		sortKey = key;
-		sortDirection = key === 'arrival_date' || key === 'departure_date' ? 'desc' : 'asc';
+		void volunteerStore.loadSorted();
 	}
 
-	function sortValue(item: Volunteer, key: SortKey) {
-		return item[key] ?? '';
+	function changeDepartment() {
+		volunteerStore.departmentName =
+			departments.find((item) => item.id === volunteerStore.departmentId)?.name ?? '';
+		void volunteerStore.load();
 	}
 
 	onMount(() => {
 		let currentDate = vietnamDateKey();
 		volunteerStore.status = 'active';
 		void volunteerStore.refreshIfStale(listCacheTtlMs);
+		void listDepartments('', 'all')
+			.then((items) => (departments = items))
+			.catch(() => (departments = []));
 
 		function smartRefresh() {
 			currentDate = vietnamDateKey();
@@ -96,14 +82,14 @@
 		<div class="mx-auto flex max-w-[1320px] flex-col gap-3 md:flex-row md:items-center">
 			<button
 				type="button"
-				class="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[var(--color-primary)] px-4 text-sm font-semibold text-white md:order-2 md:w-auto"
+				class="hidden h-11 items-center justify-center gap-2 rounded-md bg-[var(--color-primary)] px-4 text-sm font-semibold text-white md:order-2 md:flex md:w-auto"
 				onclick={() => router.push('/volunteers/new')}
 			>
 				<span class="icon-[lucide--user-plus] h-5 w-5" aria-hidden="true"></span>
 				Thêm Huynh đệ công quả
 			</button>
-			<div class="flex min-w-0 flex-1 gap-2 md:order-1">
-				<label class="relative min-w-0 flex-1">
+			<div class="grid min-w-0 flex-1 grid-cols-2 gap-2 md:order-1 md:flex">
+				<label class="relative col-span-2 min-w-0 md:flex-1">
 					<span
 						class="absolute top-3 left-3 icon-[lucide--search] h-4 w-4 text-[var(--color-text-muted)]"
 						aria-hidden="true"
@@ -112,15 +98,29 @@
 						bind:value={volunteerStore.query}
 						oninput={search}
 						placeholder="Tìm theo tên, pháp danh, SĐT"
-						aria-label="Tìm hồ sơ"
+						aria-label="Tìm Huynh đệ"
 						class="h-10 w-full rounded-md border-[var(--color-border-strong)] pr-3 pl-9 text-sm"
 					/>
 				</label>
 				<select
+					bind:value={volunteerStore.departmentId}
+					onchange={changeDepartment}
+					aria-label="Lọc phân ban"
+					class="h-10 min-w-0 rounded-md border-[var(--color-border-strong)] pr-8 text-sm md:max-w-52"
+				>
+					<option value="">Tất cả phân ban</option>
+					{#if volunteerStore.departmentId && !departments.some((item) => item.id === volunteerStore.departmentId)}
+						<option value={volunteerStore.departmentId}>{volunteerStore.departmentName}</option>
+					{/if}
+					{#each departments as department (department.id)}
+						<option value={department.id}>{department.name}</option>
+					{/each}
+				</select>
+				<select
 					bind:value={volunteerStore.status}
 					onchange={() => volunteerStore.load()}
 					aria-label="Lọc trạng thái"
-					class="h-10 rounded-md border-[var(--color-border-strong)] pr-8 text-sm"
+					class="h-10 min-w-0 rounded-md border-[var(--color-border-strong)] pr-8 text-sm"
 				>
 					<option value="active">Đang công quả</option>
 					<option value="departed">Đã ra về</option>
@@ -130,10 +130,27 @@
 		</div>
 	</div>
 
-	<div class="flex-1 overflow-y-auto px-4 py-3 md:px-6 md:py-5 lg:px-8">
+	<div class="flex-1 overflow-y-auto px-4 pt-3 pb-20 md:px-6 md:py-5 lg:px-8">
 		<div class="mx-auto max-w-[1320px]">
+			<div class="mb-3 flex min-h-5 items-center gap-2 text-xs text-[var(--color-text-secondary)]">
+				<span class="icon-[lucide--users] h-4 w-4 shrink-0" aria-hidden="true"></span>
+				<p aria-live="polite">
+					{volunteerStore.isLoading
+						? 'Đang cập nhật số lượng...'
+						: `${volunteerStore.total} Huynh đệ`}
+					{#if !volunteerStore.isLoading && volunteerStore.departmentName}
+						<span> · {volunteerStore.departmentName}</span>
+					{/if}
+				</p>
+				{#if volunteerStore.isRefreshing}
+					<span
+						class="ml-0.5 icon-[lucide--loader-circle] h-3.5 w-3.5 animate-spin text-[var(--color-primary)]"
+						aria-label="Đang cập nhật danh sách"
+					></span>
+				{/if}
+			</div>
 			{#if volunteerStore.isLoading}
-				<div class="py-16"><LoadingIndicator label="Đang tải hồ sơ..." /></div>
+				<div class="py-16"><LoadingIndicator label="Đang tải Huynh đệ..." /></div>
 			{:else if volunteerStore.items.length === 0}
 				<div
 					class="border border-dashed border-[var(--color-border-strong)] bg-[var(--color-surface)] px-4 py-10 text-center"
@@ -142,7 +159,7 @@
 						class="mx-auto icon-[lucide--users] block h-8 w-8 text-[var(--color-text-muted)]"
 						aria-hidden="true"
 					></span>
-					<p class="mt-3 text-sm font-semibold">Chưa có hồ sơ phù hợp</p>
+					<p class="mt-3 text-sm font-semibold">Chưa có Huynh đệ phù hợp</p>
 				</div>
 			{:else}
 				<ul class="space-y-2 lg:hidden">
@@ -194,11 +211,12 @@
 					{/each}
 				</ul>
 				<div
-					class="hidden overflow-x-auto rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] lg:block"
+					class="hidden max-h-[calc(100dvh-10rem)] overflow-auto rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] lg:block"
+					aria-busy={volunteerStore.isRefreshing}
 				>
 					<table class="w-full min-w-[1320px] border-collapse text-left text-sm">
 						<thead
-							class="border-b border-[var(--color-border)] bg-[var(--color-surface-muted)] text-xs font-semibold text-[var(--color-text-secondary)]"
+							class="sticky top-0 z-10 border-b border-[var(--color-border)] bg-[var(--color-surface-muted)] text-xs font-semibold text-[var(--color-text-secondary)] shadow-[0_1px_0_var(--color-border)]"
 						>
 							<tr>
 								<th class="w-52 px-4 py-3">{@render sortHeader('full_name', 'Họ tên')}</th>
@@ -215,7 +233,7 @@
 							</tr>
 						</thead>
 						<tbody class="divide-y divide-[var(--color-border)]">
-							{#each sortedItems as item (item.id)}
+							{#each volunteerStore.items as item (item.id)}
 								<tr
 									class="cursor-pointer hover:bg-[var(--color-surface-muted)]"
 									onclick={() => router.push(`/volunteers/${encodeURIComponent(item.id)}`)}
@@ -272,25 +290,59 @@
 					</table>
 				</div>
 			{/if}
+			{#if !volunteerStore.isLoading && volunteerStore.hasMore}
+				<div class="mt-4 flex flex-col items-center gap-1.5">
+					<button
+						type="button"
+						disabled={volunteerStore.isLoadingMore}
+						class="flex h-10 items-center justify-center gap-2 rounded-md border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-5 text-sm font-semibold text-[var(--color-primary-dark)] disabled:opacity-60"
+						onclick={() => void volunteerStore.loadMore()}
+					>
+						<span
+							class={volunteerStore.isLoadingMore
+								? 'icon-[lucide--loader-circle] h-4 w-4 animate-spin'
+								: 'icon-[lucide--chevron-down] h-4 w-4'}
+							aria-hidden="true"
+						></span>
+						{volunteerStore.isLoadingMore ? 'Đang tải...' : 'Xem thêm'}
+					</button>
+					<p class="text-xs text-[var(--color-text-muted)]">
+						Đã hiển thị {volunteerStore.items.length}/{volunteerStore.total}
+					</p>
+				</div>
+			{/if}
 		</div>
 	</div>
+
+	<button
+		type="button"
+		class="absolute right-4 bottom-4 z-10 grid h-14 w-14 place-items-center rounded-full bg-[var(--color-primary)] text-white shadow-[var(--shadow-popover)] md:hidden"
+		aria-label="Thêm Huynh đệ công quả"
+		title="Thêm Huynh đệ công quả"
+		onclick={() => router.push('/volunteers/new')}
+	>
+		<span class="icon-[lucide--user-plus] h-6 w-6" aria-hidden="true"></span>
+	</button>
 </section>
 
-{#snippet sortHeader(key: SortKey, label: string)}
+{#snippet sortHeader(key: VolunteerSortKey, label: string)}
 	<button
 		type="button"
 		class="flex w-full items-center gap-1.5 text-left hover:text-[var(--color-text)]"
+		aria-busy={volunteerStore.isSorting && volunteerStore.sortKey === key}
 		onclick={() => toggleSort(key)}
 	>
 		<span>{label}</span>
 		<span
 			class={[
 				'h-3.5 w-3.5 shrink-0',
-				sortKey === key
-					? sortDirection === 'asc'
-						? 'icon-[lucide--arrow-up] text-[var(--color-primary)]'
-						: 'icon-[lucide--arrow-down] text-[var(--color-primary)]'
-					: 'icon-[lucide--arrow-up-down] text-[var(--color-text-muted)]'
+				volunteerStore.isSorting && volunteerStore.sortKey === key
+					? 'icon-[lucide--loader-circle] animate-spin text-[var(--color-primary)]'
+					: volunteerStore.sortKey === key
+						? volunteerStore.sortDirection === 'asc'
+							? 'icon-[lucide--arrow-up] text-[var(--color-primary)]'
+							: 'icon-[lucide--arrow-down] text-[var(--color-primary)]'
+						: 'icon-[lucide--arrow-up-down] text-[var(--color-text-muted)]'
 			]}
 			aria-hidden="true"
 		></span>

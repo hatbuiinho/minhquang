@@ -28,13 +28,13 @@ export function parseRoute(pathname: string): AppRoute {
 	const path = pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
 	if (path === '/' || path === '/volunteers')
 		return { name: 'volunteers', path: '/volunteers', title: 'Huynh đệ công quả' };
-	if (path === '/volunteers/new') return { name: 'volunteer-new', path, title: 'Thêm hồ sơ' };
+	if (path === '/volunteers/new') return { name: 'volunteer-new', path, title: 'Thêm Huynh đệ' };
 	const edit = /^\/volunteers\/([^/]+)\/edit$/.exec(path);
 	if (edit)
 		return {
 			name: 'volunteer-edit',
 			path,
-			title: 'Sửa hồ sơ',
+			title: 'Sửa Huynh đệ',
 			volunteerId: decodeURIComponent(edit[1])
 		};
 	const detail = /^\/volunteers\/([^/]+)$/.exec(path);
@@ -42,7 +42,7 @@ export function parseRoute(pathname: string): AppRoute {
 		return {
 			name: 'volunteer-detail',
 			path,
-			title: 'Chi tiết hồ sơ',
+			title: 'Chi tiết Huynh đệ',
 			volunteerId: decodeURIComponent(detail[1])
 		};
 	if (path === '/users') return { name: 'users', path, title: 'Tài khoản quản trị' };

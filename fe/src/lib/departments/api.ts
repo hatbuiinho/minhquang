@@ -5,6 +5,7 @@ export type Department = {
 	name: string;
 	active: boolean;
 	volunteer_count: number;
+	active_volunteer_count: number;
 	created_at: string;
 	updated_at: string;
 };

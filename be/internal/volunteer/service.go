@@ -46,8 +46,26 @@ func (s *Service) Create(ctx context.Context, input Input) (Volunteer, error) {
 func (s *Service) List(ctx context.Context, options ListOptions) ([]Volunteer, error) {
 	options.Query = strings.TrimSpace(options.Query)
 	options.Status = strings.TrimSpace(options.Status)
+	options.DepartmentID = strings.TrimSpace(options.DepartmentID)
+	options.SortBy = strings.TrimSpace(options.SortBy)
+	options.SortDirection = strings.ToLower(strings.TrimSpace(options.SortDirection))
 	if options.Status != "" && options.Status != "active" && options.Status != "departed" {
 		return nil, fmt.Errorf("%w: status must be active or departed", ErrInvalidInput)
+	}
+	if options.Limit < 0 || options.Offset < 0 {
+		return nil, fmt.Errorf("%w: limit and offset must not be negative", ErrInvalidInput)
+	}
+	if options.SortBy == "" {
+		options.SortBy = "arrival_date"
+	}
+	if !validSortColumn(options.SortBy) {
+		return nil, fmt.Errorf("%w: unsupported sort column", ErrInvalidInput)
+	}
+	if options.SortDirection == "" {
+		options.SortDirection = "desc"
+	}
+	if options.SortDirection != "asc" && options.SortDirection != "desc" {
+		return nil, fmt.Errorf("%w: sort direction must be asc or desc", ErrInvalidInput)
 	}
 	options.Today = s.today()
 	items, err := s.store.List(ctx, options)
@@ -58,6 +76,26 @@ func (s *Service) List(ctx context.Context, options ListOptions) ([]Volunteer, e
 		items[index] = s.withStatus(items[index])
 	}
 	return items, nil
+}
+
+func validSortColumn(value string) bool {
+	switch value {
+	case "full_name", "dharma_name", "birth_date", "cultivation_place", "department", "phone", "arrival_date", "departure_date", "status":
+		return true
+	default:
+		return false
+	}
+}
+
+func (s *Service) Count(ctx context.Context, options ListOptions) (int, error) {
+	options.Query = strings.TrimSpace(options.Query)
+	options.Status = strings.TrimSpace(options.Status)
+	options.DepartmentID = strings.TrimSpace(options.DepartmentID)
+	if options.Status != "" && options.Status != "active" && options.Status != "departed" {
+		return 0, fmt.Errorf("%w: status must be active or departed", ErrInvalidInput)
+	}
+	options.Today = s.today()
+	return s.store.Count(ctx, options)
 }
 
 func (s *Service) Get(ctx context.Context, id string) (Volunteer, error) {

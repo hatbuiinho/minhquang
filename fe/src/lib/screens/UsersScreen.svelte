@@ -1,46 +1,22 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { apiRequest } from '$lib/api/client';
-	import type { AdminUser } from '$lib/auth/auth-store.svelte';
 	import { authStore } from '$lib/auth/auth-store.svelte';
-	import { toastStore } from '$lib/ui/toast-store.svelte';
+	import { userStore } from '$lib/users/user-store.svelte';
 
-	let users = $state<AdminUser[]>([]);
 	let showForm = $state(false);
-	let saving = $state(false);
 	let displayName = $state('');
 	let username = $state('');
 	let password = $state('');
 
-	onMount(load);
-
-	async function load() {
-		try {
-			users = (await apiRequest<{ users: AdminUser[] }>('/api/users')).users;
-		} catch (error) {
-			toastStore.error(error instanceof Error ? error.message : 'Không thể tải tài khoản');
-		}
-	}
+	onMount(() => void userStore.refreshIfStale(45_000));
 
 	async function create(event: SubmitEvent) {
 		event.preventDefault();
-		saving = true;
-		try {
-			await apiRequest<AdminUser>('/api/users', {
-				method: 'POST',
-				body: JSON.stringify({ username, display_name: displayName, password })
-			});
-			toastStore.success('Đã tạo tài khoản quản trị');
-			displayName = '';
-			username = '';
-			password = '';
-			showForm = false;
-			await load();
-		} catch (error) {
-			toastStore.error(error instanceof Error ? error.message : 'Không thể tạo tài khoản');
-		} finally {
-			saving = false;
-		}
+		if (!(await userStore.create(displayName, username, password))) return;
+		displayName = '';
+		username = '';
+		password = '';
+		showForm = false;
 	}
 </script>
 
@@ -49,7 +25,9 @@
 		<div class="mb-4 flex items-center justify-between gap-3">
 			<div>
 				<p class="text-sm font-medium">Tài khoản quản trị</p>
-				<p class="mt-0.5 text-xs text-[var(--color-text-secondary)]">{users.length} tài khoản</p>
+				<p class="mt-0.5 text-xs text-[var(--color-text-secondary)]">
+					{userStore.items.length} tài khoản
+				</p>
 			</div>
 			<button
 				type="button"
@@ -96,15 +74,15 @@
 				/>
 				<button
 					type="submit"
-					disabled={saving}
+					disabled={userStore.isSaving}
 					class="h-11 w-full rounded-md bg-[var(--color-primary)] text-sm font-semibold text-white disabled:opacity-60"
-					>{saving ? 'Đang tạo...' : 'Tạo tài khoản'}</button
+					>{userStore.isSaving ? 'Đang tạo...' : 'Tạo tài khoản'}</button
 				>
 			</form>
 		{/if}
 
 		<ul class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-			{#each users as user (user.id)}
+			{#each userStore.items as user (user.id)}
 				<li
 					class="flex items-center gap-3 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-3"
 				>

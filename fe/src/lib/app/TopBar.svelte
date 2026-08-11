@@ -42,7 +42,7 @@
 				form="volunteer-form"
 				disabled={!canSave}
 				class="flex h-10 w-10 items-center justify-center rounded-md bg-[var(--color-primary)] text-white disabled:opacity-50 md:hidden"
-				aria-label="Lưu hồ sơ"
+				aria-label="Lưu Huynh đệ"
 				><span class="icon-[lucide--check] h-5 w-5" aria-hidden="true"></span></button
 			>
 		{:else}
