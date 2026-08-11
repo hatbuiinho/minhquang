@@ -45,14 +45,31 @@ func (s *PostgresStore) List(ctx context.Context) ([]User, error) {
 	return items, rows.Err()
 }
 
-func (s *PostgresStore) UpdateAccount(ctx context.Context, id, username, displayName, role string, updatedAt time.Time) (User, error) {
-	query := `UPDATE users SET username=$2, display_name=$3, role=$4, updated_at=$5 WHERE id=$1 RETURNING ` + userColumns
-	updated, err := scanUser(s.pool.QueryRow(ctx, query, id, username, displayName, role, updatedAt))
+func (s *PostgresStore) UpdateAccount(ctx context.Context, id, username, displayName, role, passwordHash string, updatedAt time.Time) (User, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return User{}, fmt.Errorf("begin account update: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	query := `UPDATE users SET username=$2, display_name=$3, role=$4, password_hash=COALESCE(NULLIF($5, ''), password_hash), updated_at=$6 WHERE id=$1 RETURNING ` + userColumns
+	updated, err := scanUser(tx.QueryRow(ctx, query, id, username, displayName, role, passwordHash, updatedAt))
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 		return User{}, ErrUsernameExists
 	}
-	return updated, err
+	if err != nil {
+		return User{}, err
+	}
+	if passwordHash != "" {
+		if _, err := tx.Exec(ctx, `DELETE FROM user_sessions WHERE user_id=$1`, id); err != nil {
+			return User{}, fmt.Errorf("revoke sessions after password reset: %w", err)
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return User{}, fmt.Errorf("commit account update: %w", err)
+	}
+	return updated, nil
 }
 
 func (s *PostgresStore) FindByUsername(ctx context.Context, username string) (User, error) {

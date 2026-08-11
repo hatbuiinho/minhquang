@@ -99,6 +99,41 @@ func TestUpdateAccountNormalizesFieldsAndRole(t *testing.T) {
 	}
 }
 
+func TestAdminResetPasswordRevokesTargetSessions(t *testing.T) {
+	now := time.Date(2026, 8, 11, 11, 0, 0, 0, time.UTC)
+	service := NewService(NewMemoryStore(), func() time.Time { return now })
+	target, err := service.Create(context.Background(), CreateInput{
+		Username: "viewer", DisplayName: "Giam sat vien", Password: "old-password", Role: RoleViewer,
+	})
+	if err != nil {
+		t.Fatalf("create target: %v", err)
+	}
+	session, err := service.Login(context.Background(), target.Username, "old-password")
+	if err != nil {
+		t.Fatalf("login target: %v", err)
+	}
+	actor := User{ID: "admin-id", Role: RoleAdmin}
+	if _, err := service.Update(context.Background(), actor, target.ID, UpdateInput{
+		Username: target.Username, DisplayName: target.DisplayName, Role: target.Role, Password: "new-password",
+	}); err != nil {
+		t.Fatalf("reset target password: %v", err)
+	}
+	if _, err := service.Authenticate(context.Background(), session.Token); !errors.Is(err, ErrInvalidCredentials) {
+		t.Fatalf("target session should be revoked, got %v", err)
+	}
+	if _, err := service.Login(context.Background(), target.Username, "old-password"); !errors.Is(err, ErrInvalidCredentials) {
+		t.Fatalf("old password should be rejected, got %v", err)
+	}
+	if _, err := service.Login(context.Background(), target.Username, "new-password"); err != nil {
+		t.Fatalf("new password login: %v", err)
+	}
+	if _, err := service.Update(context.Background(), target, target.ID, UpdateInput{
+		Username: target.Username, DisplayName: target.DisplayName, Role: target.Role, Password: "another-password",
+	}); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("expected self password reset error, got %v", err)
+	}
+}
+
 func TestChangePasswordKeepsCurrentSessionAndRevokesOthers(t *testing.T) {
 	now := time.Date(2026, 8, 10, 9, 0, 0, 0, time.UTC)
 	service := NewService(NewMemoryStore(), func() time.Time { return now })

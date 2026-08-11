@@ -17,9 +17,15 @@ export function createUser(
 	});
 }
 
-export function updateUser(id: string, displayName: string, username: string, role: UserRole) {
+export function updateUser(
+	id: string,
+	displayName: string,
+	username: string,
+	role: UserRole,
+	password: string
+) {
 	return apiRequest<AdminUser>(`/api/users/${encodeURIComponent(id)}`, {
 		method: 'PUT',
-		body: JSON.stringify({ username, display_name: displayName, role })
+		body: JSON.stringify({ username, display_name: displayName, role, password })
 	});
 }

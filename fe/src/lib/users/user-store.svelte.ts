@@ -49,11 +49,17 @@ class UserStore {
 		}
 	}
 
-	async update(id: string, displayName: string, username: string, role: UserRole) {
+	async update(
+		id: string,
+		displayName: string,
+		username: string,
+		role: UserRole,
+		password: string
+	) {
 		if (this.isSaving) return null;
 		this.isSaving = true;
 		try {
-			const item = await updateUser(id, displayName, username, role);
+			const item = await updateUser(id, displayName, username, role, password);
 			this.items = sortUsers(
 				this.items.map((candidate) => (candidate.id === item.id ? item : candidate))
 			);

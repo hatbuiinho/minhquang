@@ -19,16 +19,19 @@
 	let canManage = $derived(authStore.can('user.manage'));
 	let isEditing = $derived(editingUser !== null);
 	let isEditingSelf = $derived(editingUser?.id === authStore.user?.id);
+	let canEditPassword = $derived(!isEditing || !isEditingSelf);
 	let passwordMismatch = $derived(
-		!isEditing && confirmPassword.length > 0 && password !== confirmPassword
+		canEditPassword && confirmPassword.length > 0 && password !== confirmPassword
+	);
+	let passwordValid = $derived(
+		isEditing
+			? isEditingSelf ||
+					(password === '' && confirmPassword === '') ||
+					(password.length >= 8 && password === confirmPassword)
+			: password.length >= 8 && password === confirmPassword
 	);
 	let canSave = $derived(
-		Boolean(
-			displayName.trim() &&
-			username.trim() &&
-			(isEditing || (password.length >= 8 && password === confirmPassword)) &&
-			!userStore.isSaving
-		)
+		Boolean(displayName.trim() && username.trim() && passwordValid && !userStore.isSaving)
 	);
 
 	onMount(() => void userStore.refreshIfStale(45_000));
@@ -69,7 +72,7 @@
 	async function save(event: SubmitEvent) {
 		event.preventDefault();
 		if (editingUser) {
-			const item = await userStore.update(editingUser.id, displayName, username, role);
+			const item = await userStore.update(editingUser.id, displayName, username, role, password);
 			if (!item) return;
 			authStore.syncUser(item);
 		} else if (!(await userStore.create(displayName, username, password, role))) {
@@ -184,25 +187,29 @@
 				class="h-11 w-full rounded-md border-[var(--color-border-strong)]"
 			/>
 		</label>
-		{#if !isEditing}
+		{#if canEditPassword}
 			<label class="block">
-				<span class="mb-1.5 block text-sm font-medium">Mật khẩu</span>
+				<span class="mb-1.5 block text-sm font-medium">
+					{isEditing ? 'Mật khẩu mới' : 'Mật khẩu'}
+				</span>
 				<PasswordInput
 					bind:value={password}
-					required
+					required={!isEditing}
 					minlength={8}
-					placeholder="Ít nhất 8 ký tự"
-					ariaLabel="Mật khẩu"
+					placeholder={isEditing ? 'Để trống nếu không đổi' : 'Ít nhất 8 ký tự'}
+					ariaLabel={isEditing ? 'Mật khẩu mới' : 'Mật khẩu'}
 					autocomplete="new-password"
 				/>
 			</label>
 			<label class="block">
-				<span class="mb-1.5 block text-sm font-medium">Nhập lại mật khẩu</span>
+				<span class="mb-1.5 block text-sm font-medium">
+					{isEditing ? 'Nhập lại mật khẩu mới' : 'Nhập lại mật khẩu'}
+				</span>
 				<PasswordInput
 					bind:value={confirmPassword}
-					required
+					required={!isEditing}
 					minlength={8}
-					ariaLabel="Nhập lại mật khẩu"
+					ariaLabel={isEditing ? 'Nhập lại mật khẩu mới' : 'Nhập lại mật khẩu'}
 					autocomplete="new-password"
 				/>
 			</label>

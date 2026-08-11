@@ -200,6 +200,11 @@ paths:
                 username: { type: string }
                 display_name: { type: string }
                 role: { type: string, enum: [admin, viewer] }
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  description: Mật khẩu mới; bỏ trống để giữ nguyên. Chỉ dùng khi sửa tài khoản khác.
       responses:
         "200":
           description: Tài khoản đã cập nhật

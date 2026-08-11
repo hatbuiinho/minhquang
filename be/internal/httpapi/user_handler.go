@@ -58,13 +58,14 @@ func (h *UserHandler) Item(w http.ResponseWriter, r *http.Request) {
 		Username    string `json:"username"`
 		DisplayName string `json:"display_name"`
 		Role        string `json:"role"`
+		Password    string `json:"password"`
 	}
 	if err := readJSON(r, &payload); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_json", "request body must be valid json")
 		return
 	}
 	item, err := h.users.Update(r.Context(), currentUser(r.Context()), r.PathValue("id"), user.UpdateInput{
-		Username: payload.Username, DisplayName: payload.DisplayName, Role: payload.Role,
+		Username: payload.Username, DisplayName: payload.DisplayName, Role: payload.Role, Password: payload.Password,
 	})
 	switch {
 	case err == nil:

@@ -42,6 +42,7 @@
 	<meta name="apple-mobile-web-app-status-bar-style" content="default" />
 	<meta name="apple-mobile-web-app-title" content="Minh Quang" />
 	<meta name="application-name" content="Nhân sự Minh Quang" />
+	<link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
 	<link rel="icon" href="/icons/favicon-32.png" sizes="32x32" type="image/png" />
 	<link rel="icon" href="/icons/icon-192.png" sizes="192x192" type="image/png" />
 	<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />

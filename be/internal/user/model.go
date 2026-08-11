@@ -51,6 +51,7 @@ type UpdateInput struct {
 	Username    string
 	DisplayName string
 	Role        string
+	Password    string
 }
 
 func PermissionsForRole(role string) []Permission {

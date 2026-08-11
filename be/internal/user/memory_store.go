@@ -40,7 +40,7 @@ func (s *MemoryStore) List(_ context.Context) ([]User, error) {
 	return items, nil
 }
 
-func (s *MemoryStore) UpdateAccount(_ context.Context, id, username, displayName, role string, updatedAt time.Time) (User, error) {
+func (s *MemoryStore) UpdateAccount(_ context.Context, id, username, displayName, role, passwordHash string, updatedAt time.Time) (User, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	item, exists := s.users[id]
@@ -55,6 +55,14 @@ func (s *MemoryStore) UpdateAccount(_ context.Context, id, username, displayName
 	item.Username = username
 	item.DisplayName = displayName
 	item.Role = role
+	if passwordHash != "" {
+		item.PasswordHash = passwordHash
+		for tokenHash, session := range s.sessions {
+			if session.UserID == id {
+				delete(s.sessions, tokenHash)
+			}
+		}
+	}
 	item.UpdatedAt = updatedAt
 	s.users[id] = item
 	return item, nil

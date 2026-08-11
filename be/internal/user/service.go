@@ -92,7 +92,21 @@ func (s *Service) Update(ctx context.Context, actor User, id string, input Updat
 	if actor.ID == id && role != actor.Role {
 		return User{}, fmt.Errorf("%w: cannot change your own role", ErrInvalidInput)
 	}
-	item, err := s.store.UpdateAccount(ctx, id, username, displayName, role, s.now().UTC())
+	passwordHash := ""
+	if input.Password != "" {
+		if actor.ID == id {
+			return User{}, fmt.Errorf("%w: use the authenticated password change flow for your own account", ErrInvalidInput)
+		}
+		if len(input.Password) < 8 {
+			return User{}, fmt.Errorf("%w: password must contain at least 8 characters", ErrInvalidInput)
+		}
+		hash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return User{}, fmt.Errorf("hash password: %w", err)
+		}
+		passwordHash = string(hash)
+	}
+	item, err := s.store.UpdateAccount(ctx, id, username, displayName, role, passwordHash, s.now().UTC())
 	return withPermissions(item), err
 }
 
