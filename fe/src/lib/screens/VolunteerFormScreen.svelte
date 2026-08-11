@@ -3,13 +3,24 @@
 	import { router } from '$lib/navigation/router.svelte';
 	import { volunteerStore } from '$lib/volunteers/volunteer-store.svelte';
 	import { parseSheetVolunteer } from '$lib/volunteers/sheet-parser';
-	import { toastStore } from '$lib/ui/toast-store.svelte';
 	import DepartmentCombobox from '$lib/volunteers/DepartmentCombobox.svelte';
 
 	let { volunteerId }: { volunteerId?: string } = $props();
 	let sheetData = $state('');
 	let sheetOpen = $state(false);
 	let sheetTextarea = $state<HTMLTextAreaElement>();
+	let sheetError = $state('');
+	const sheetPlaceholder = [
+		'Họ tên',
+		'Pháp danh',
+		'Ngày sinh',
+		'Nơi sinh hoạt',
+		'Số điện thoại',
+		'Ngày đến',
+		'Ngày ra về (có thể để trống)',
+		'Phân ban (có thể để trống)',
+		'Ghi chú (có thể để trống)'
+	].join('\n');
 
 	async function submit(event: SubmitEvent) {
 		event.preventDefault();
@@ -18,16 +29,31 @@
 		router.replace(volunteerId ? `/volunteers/${item.id}` : '/volunteers');
 	}
 
-	function applySheetData() {
+	function syncSheetData(event: Event) {
+		sheetData = (event.currentTarget as HTMLTextAreaElement).value;
+		if (!sheetData.trim()) {
+			sheetError = '';
+			return;
+		}
 		try {
 			const parsed = parseSheetVolunteer(sheetData);
 			volunteerStore.form = { ...volunteerStore.form, ...parsed };
-			sheetData = '';
-			sheetOpen = false;
-			toastStore.success('Đã điền dữ liệu từ Google Sheets');
+			sheetError = '';
 		} catch (error) {
-			toastStore.error(error instanceof Error ? error.message : 'Không thể đọc dữ liệu');
+			sheetError = hasMinimumSheetFields(sheetData)
+				? error instanceof Error
+					? error.message
+					: 'Không thể đọc dữ liệu'
+				: '';
 		}
+	}
+
+	function hasMinimumSheetFields(raw: string): boolean {
+		const normalized = raw.replace(/\r\n?/g, '\n');
+		if (normalized.includes('\t')) {
+			return (normalized.split('\n').find((row) => row.trim()) ?? '').split('\t').length >= 6;
+		}
+		return normalized.split('\n').length >= 6;
 	}
 
 	async function toggleSheetInput() {
@@ -61,18 +87,14 @@
 						<textarea
 							bind:this={sheetTextarea}
 							bind:value={sheetData}
-							rows="7"
+							placeholder={sheetPlaceholder}
+							rows="9"
 							class="w-full resize-y rounded-md border-[var(--color-border-strong)] text-sm"
-						></textarea>
+							oninput={syncSheetData}></textarea>
 					</label>
-					<button
-						type="button"
-						disabled={!sheetData.trim()}
-						class="h-10 w-full rounded-md bg-[var(--color-primary)] text-sm font-semibold text-white disabled:opacity-50"
-						onclick={applySheetData}
-					>
-						Điền dữ liệu
-					</button>
+					{#if sheetError}
+						<p class="text-sm text-[var(--color-danger)]">{sheetError}</p>
+					{/if}
 				</div>
 			{/if}
 		</div>

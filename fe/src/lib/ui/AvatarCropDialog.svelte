@@ -93,13 +93,13 @@
 		role="presentation"
 	>
 		<div
-			class="flex h-dvh w-full flex-col overflow-hidden bg-[var(--color-surface)] sm:h-auto sm:max-h-[90dvh] sm:max-w-3xl sm:rounded-md"
+			class="flex h-dvh w-full flex-col overflow-hidden bg-[var(--color-surface)] sm:h-[min(46rem,calc(100dvh-2rem))] sm:max-w-3xl sm:rounded-md"
 			role="dialog"
 			aria-modal="true"
 			aria-label="Cắt ảnh đại diện"
 		>
 			<header
-				class="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3"
+				class="flex shrink-0 items-center justify-between border-b border-[var(--color-border)] px-4 py-3"
 			>
 				<div>
 					<h2 class="font-semibold">Cắt ảnh đại diện</h2>
@@ -116,9 +116,9 @@
 					><span class="icon-[lucide--x] h-5 w-5" aria-hidden="true"></span></button
 				>
 			</header>
-			<div class="min-h-0 flex-1 bg-neutral-950 p-3 sm:p-5">
+			<div class="min-h-0 flex-1 overflow-hidden bg-neutral-950 p-3 sm:p-5">
 				<div
-					class="flex h-full min-h-72 items-center justify-center overflow-hidden bg-neutral-900"
+					class="avatar-crop-stage relative flex h-full min-h-0 w-full items-center justify-center overflow-hidden bg-neutral-900"
 				>
 					{#if objectUrl}<img
 							src={objectUrl}
@@ -129,7 +129,7 @@
 				</div>
 			</div>
 			<footer
-				class="flex justify-end gap-3 border-t border-[var(--color-border)] px-3 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] sm:p-3"
+				class="flex shrink-0 justify-end gap-3 border-t border-[var(--color-border)] px-3 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] sm:p-3"
 			>
 				<button
 					type="button"
@@ -151,3 +151,10 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	:global(.avatar-crop-stage .cropper-container) {
+		max-width: 100%;
+		max-height: 100%;
+	}
+</style>
