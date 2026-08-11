@@ -9,6 +9,8 @@ type Store interface {
 	Get(ctx context.Context, id string) (Volunteer, error)
 	Update(ctx context.Context, item Volunteer) (Volunteer, error)
 	Delete(ctx context.Context, id string) error
+	BulkUpdate(ctx context.Context, ids []string, patch BulkPatch) (int, error)
+	BulkDelete(ctx context.Context, ids []string) (int, error)
 }
 
 type DepartmentResolver interface {

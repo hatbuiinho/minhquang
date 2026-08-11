@@ -153,6 +153,86 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	return s.store.Delete(ctx, id)
 }
 
+func (s *Service) BulkDelete(ctx context.Context, ids []string) (int, error) {
+	ids, err := normalizeBulkIDs(ids)
+	if err != nil {
+		return 0, err
+	}
+	return s.store.BulkDelete(ctx, ids)
+}
+
+func (s *Service) BulkUpdate(ctx context.Context, ids []string, field, value string) (int, error) {
+	ids, err := normalizeBulkIDs(ids)
+	if err != nil {
+		return 0, err
+	}
+	patch := BulkPatch{Field: strings.TrimSpace(field), UpdatedAt: s.now().UTC()}
+	value = strings.TrimSpace(value)
+	switch patch.Field {
+	case "full_name":
+		if value == "" {
+			return 0, fmt.Errorf("%w: full_name is required", ErrInvalidInput)
+		}
+		patch.TextValue = value
+	case "dharma_name", "birth_date", "cultivation_place", "phone", "notes", "avatar_url":
+		patch.TextValue = value
+	case "department":
+		if utf8.RuneCountInString(strings.Join(strings.Fields(value), " ")) > 60 {
+			return 0, fmt.Errorf("%w: department must not exceed 60 characters", ErrInvalidInput)
+		}
+		patch.Department = strings.Join(strings.Fields(value), " ")
+		if s.departmentResolver != nil {
+			id, name, err := s.departmentResolver.ResolveOrCreate(ctx, patch.Department)
+			if err != nil {
+				return 0, fmt.Errorf("%w: department cannot be used: %v", ErrInvalidInput, err)
+			}
+			patch.DepartmentID, patch.Department = id, name
+		}
+	case "arrival_date":
+		date, err := time.Parse("2006-01-02", value)
+		if err != nil {
+			return 0, fmt.Errorf("%w: arrival_date must be a valid date", ErrInvalidInput)
+		}
+		date = dateOnly(date)
+		patch.DateValue = &date
+	case "departure_date":
+		if value != "" {
+			date, err := time.Parse("2006-01-02", value)
+			if err != nil {
+				return 0, fmt.Errorf("%w: departure_date must be a valid date", ErrInvalidInput)
+			}
+			date = dateOnly(date)
+			patch.DateValue = &date
+		}
+	default:
+		return 0, fmt.Errorf("%w: unsupported bulk update field", ErrInvalidInput)
+	}
+	return s.store.BulkUpdate(ctx, ids, patch)
+}
+
+func normalizeBulkIDs(ids []string) ([]string, error) {
+	if len(ids) == 0 {
+		return nil, fmt.Errorf("%w: at least one id is required", ErrInvalidInput)
+	}
+	if len(ids) > 500 {
+		return nil, fmt.Errorf("%w: no more than 500 ids are allowed", ErrInvalidInput)
+	}
+	unique := make([]string, 0, len(ids))
+	seen := make(map[string]struct{}, len(ids))
+	for _, rawID := range ids {
+		id := strings.TrimSpace(rawID)
+		if id == "" {
+			return nil, fmt.Errorf("%w: ids must not be empty", ErrInvalidInput)
+		}
+		if _, exists := seen[id]; exists {
+			continue
+		}
+		seen[id] = struct{}{}
+		unique = append(unique, id)
+	}
+	return unique, nil
+}
+
 func (s *Service) normalize(input Input) (Volunteer, error) {
 	fullName := strings.TrimSpace(input.FullName)
 	if fullName == "" {

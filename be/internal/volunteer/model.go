@@ -50,3 +50,12 @@ type ListOptions struct {
 	SortBy        string
 	SortDirection string
 }
+
+type BulkPatch struct {
+	Field        string
+	TextValue    string
+	DateValue    *time.Time
+	DepartmentID string
+	Department   string
+	UpdatedAt    time.Time
+}

@@ -9,16 +9,48 @@
 	import { router } from '$lib/navigation/router.svelte';
 	import { volunteerStore } from '$lib/volunteers/volunteer-store.svelte';
 	import { vietnamDateKey } from '$lib/volunteers/status';
-	import type { VolunteerSortKey } from '$lib/volunteers/api';
+	import type { VolunteerBulkField, VolunteerSortKey } from '$lib/volunteers/api';
 	import { listDepartments, type Department } from '$lib/departments/api';
 	import LoadingIndicator from '$lib/ui/LoadingIndicator.svelte';
+	import Popup from '$lib/ui/Popup.svelte';
+	import { popupStore } from '$lib/ui/popup-store.svelte';
+	import DepartmentCombobox from '$lib/volunteers/DepartmentCombobox.svelte';
 
 	let searchTimer: ReturnType<typeof setTimeout> | undefined;
 	let departments = $state<Department[]>([]);
+	let selectedIDs = $state<string[]>([]);
+	let selectAllCheckbox = $state<HTMLInputElement>();
+	let bulkUpdateOpen = $state(false);
+	let bulkField = $state<VolunteerBulkField>('department');
+	let bulkValue = $state('');
 	const searchDebounceMs = 350;
 	const listCacheTtlMs = 45_000;
+	const bulkFields: { value: VolunteerBulkField; label: string }[] = [
+		{ value: 'department', label: 'Phân ban' },
+		{ value: 'departure_date', label: 'Ngày về' },
+		{ value: 'arrival_date', label: 'Ngày đến' },
+		{ value: 'cultivation_place', label: 'Nơi sinh hoạt' },
+		{ value: 'dharma_name', label: 'Pháp danh' },
+		{ value: 'birth_date', label: 'Ngày sinh' },
+		{ value: 'phone', label: 'Số điện thoại' },
+		{ value: 'notes', label: 'Ghi chú' },
+		{ value: 'avatar_url', label: 'Ảnh đại diện (URL)' },
+		{ value: 'full_name', label: 'Họ tên' }
+	];
+	let selectedSet = $derived(new Set(selectedIDs));
+	let allRowsSelected = $derived(
+		volunteerStore.items.length > 0 &&
+			volunteerStore.items.every((item) => selectedSet.has(item.id))
+	);
+	let someRowsSelected = $derived(volunteerStore.items.some((item) => selectedSet.has(item.id)));
+	let bulkValueRequired = $derived(bulkField === 'full_name' || bulkField === 'arrival_date');
+
+	$effect(() => {
+		if (selectAllCheckbox) selectAllCheckbox.indeterminate = someRowsSelected && !allRowsSelected;
+	});
 
 	function search() {
+		selectedIDs = [];
 		if (searchTimer) clearTimeout(searchTimer);
 		searchTimer = setTimeout(() => void volunteerStore.load(), searchDebounceMs);
 	}
@@ -35,9 +67,63 @@
 	}
 
 	function changeDepartment() {
+		selectedIDs = [];
 		volunteerStore.departmentName =
 			departments.find((item) => item.id === volunteerStore.departmentId)?.name ?? '';
 		void volunteerStore.load();
+	}
+
+	function changeStatus() {
+		selectedIDs = [];
+		void volunteerStore.load();
+	}
+
+	function toggleAllRows() {
+		if (allRowsSelected) {
+			const visibleIDs = new Set(volunteerStore.items.map((item) => item.id));
+			selectedIDs = selectedIDs.filter((id) => !visibleIDs.has(id));
+			return;
+		}
+		selectedIDs = Array.from(
+			new Set([...selectedIDs, ...volunteerStore.items.map((item) => item.id)])
+		);
+	}
+
+	function toggleRow(id: string) {
+		selectedIDs = selectedSet.has(id)
+			? selectedIDs.filter((selectedID) => selectedID !== id)
+			: [...selectedIDs, id];
+	}
+
+	function openBulkUpdate() {
+		bulkField = 'department';
+		bulkValue = '';
+		bulkUpdateOpen = true;
+	}
+
+	function changeBulkField() {
+		bulkValue = '';
+	}
+
+	async function submitBulkUpdate(event: SubmitEvent) {
+		event.preventDefault();
+		const updated = await volunteerStore.bulkUpdate(selectedIDs, bulkField, bulkValue);
+		if (updated === null) return;
+		selectedIDs = [];
+		bulkUpdateOpen = false;
+	}
+
+	async function deleteSelected() {
+		const count = selectedIDs.length;
+		const confirmed = await popupStore.confirm({
+			title: `Xoá ${count} Huynh đệ?`,
+			message: 'Dữ liệu đã xoá không thể khôi phục.',
+			confirmLabel: 'Xoá',
+			tone: 'danger'
+		});
+		if (!confirmed) return;
+		const deleted = await volunteerStore.bulkDelete(selectedIDs);
+		if (deleted !== null) selectedIDs = [];
 	}
 
 	onMount(() => {
@@ -118,7 +204,7 @@
 				</select>
 				<select
 					bind:value={volunteerStore.status}
-					onchange={() => volunteerStore.load()}
+					onchange={changeStatus}
 					aria-label="Lọc trạng thái"
 					class="h-10 min-w-0 rounded-md border-[var(--color-border-strong)] pr-8 text-sm"
 				>
@@ -132,7 +218,9 @@
 
 	<div class="flex-1 overflow-y-auto px-4 pt-3 pb-20 md:px-6 md:py-5 lg:px-8">
 		<div class="mx-auto max-w-[1320px]">
-			<div class="mb-3 flex min-h-5 items-center gap-2 text-xs text-[var(--color-text-secondary)]">
+			<div
+				class="mb-3 flex min-h-5 items-center gap-2 text-xs text-[var(--color-text-secondary)] lg:min-h-9"
+			>
 				<span class="icon-[lucide--users] h-4 w-4 shrink-0" aria-hidden="true"></span>
 				<p aria-live="polite">
 					{volunteerStore.isLoading
@@ -147,6 +235,31 @@
 						class="ml-0.5 icon-[lucide--loader-circle] h-3.5 w-3.5 animate-spin text-[var(--color-primary)]"
 						aria-label="Đang cập nhật danh sách"
 					></span>
+				{/if}
+				{#if selectedIDs.length > 0}
+					<div class="ml-auto hidden items-center gap-2 lg:flex">
+						<span class="mr-1 font-medium text-[var(--color-text)]"
+							>Đã chọn {selectedIDs.length}</span
+						>
+						<button
+							type="button"
+							disabled={volunteerStore.isBulkSaving}
+							class="flex h-9 items-center gap-1.5 rounded-md border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 text-xs font-semibold text-[var(--color-primary-dark)] disabled:opacity-50"
+							onclick={openBulkUpdate}
+						>
+							<span class="icon-[lucide--square-pen] h-4 w-4" aria-hidden="true"></span>
+							Cập nhật
+						</button>
+						<button
+							type="button"
+							disabled={volunteerStore.isBulkSaving}
+							class="flex h-9 items-center gap-1.5 rounded-md border border-[var(--color-danger)] bg-[var(--color-surface)] px-3 text-xs font-semibold text-[var(--color-danger)] disabled:opacity-50"
+							onclick={() => void deleteSelected()}
+						>
+							<span class="icon-[lucide--trash-2] h-4 w-4" aria-hidden="true"></span>
+							Xoá
+						</button>
+					</div>
 				{/if}
 			</div>
 			{#if volunteerStore.isLoading}
@@ -214,11 +327,24 @@
 					class="hidden max-h-[calc(100dvh-10rem)] overflow-auto rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] lg:block"
 					aria-busy={volunteerStore.isRefreshing}
 				>
-					<table class="w-full min-w-[1320px] border-collapse text-left text-sm">
+					<table class="w-full min-w-[1370px] border-separate border-spacing-0 text-left text-sm">
 						<thead
 							class="sticky top-0 z-10 border-b border-[var(--color-border)] bg-[var(--color-surface-muted)] text-xs font-semibold text-[var(--color-text-secondary)] shadow-[0_1px_0_var(--color-border)]"
 						>
 							<tr>
+								<th
+									class="sticky left-0 z-20 w-12 border-b border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-3 text-center"
+								>
+									<input
+										bind:this={selectAllCheckbox}
+										type="checkbox"
+										checked={allRowsSelected}
+										disabled={volunteerStore.isBulkSaving}
+										aria-label="Chọn tất cả hàng đang hiển thị"
+										class="h-4 w-4 rounded border-[var(--color-border-strong)] text-[var(--color-primary)]"
+										onchange={toggleAllRows}
+									/>
+								</th>
 								<th class="w-52 px-4 py-3">{@render sortHeader('full_name', 'Họ tên')}</th>
 								<th class="w-40 px-4 py-3">{@render sortHeader('dharma_name', 'Pháp danh')}</th>
 								<th class="w-36 px-4 py-3">{@render sortHeader('birth_date', 'Ngày sinh')}</th>
@@ -232,12 +358,35 @@
 								<th class="w-36 px-4 py-3">{@render sortHeader('status', 'Trạng thái')}</th>
 							</tr>
 						</thead>
-						<tbody class="divide-y divide-[var(--color-border)]">
+						<tbody
+							class="[&>tr:not(:last-child)>td]:border-b [&>tr:not(:last-child)>td]:border-[var(--color-border)]"
+						>
 							{#each volunteerStore.items as item (item.id)}
 								<tr
-									class="cursor-pointer hover:bg-[var(--color-surface-muted)]"
+									class={[
+										'group cursor-pointer hover:bg-[var(--color-surface-muted)]',
+										selectedSet.has(item.id) && 'bg-[var(--color-primary-soft)]'
+									]}
 									onclick={() => router.push(`/volunteers/${encodeURIComponent(item.id)}`)}
 								>
+									<td
+										class={[
+											'sticky left-0 z-[1] w-12 px-3 py-3 text-center group-hover:bg-[var(--color-surface-muted)]',
+											selectedSet.has(item.id)
+												? 'bg-[var(--color-primary-soft)]'
+												: 'bg-[var(--color-surface)]'
+										]}
+									>
+										<input
+											type="checkbox"
+											checked={selectedSet.has(item.id)}
+											disabled={volunteerStore.isBulkSaving}
+											aria-label={`Chọn ${item.full_name}`}
+											class="h-4 w-4 rounded border-[var(--color-border-strong)] text-[var(--color-primary)]"
+											onclick={(event) => event.stopPropagation()}
+											onchange={() => toggleRow(item.id)}
+										/>
+									</td>
 									<td class="px-4 py-3">
 										<div class="flex min-w-0 items-center gap-3">
 											{#if item.avatar_url}
@@ -324,6 +473,79 @@
 		<span class="icon-[lucide--user-plus] h-6 w-6" aria-hidden="true"></span>
 	</button>
 </section>
+
+<Popup
+	open={bulkUpdateOpen}
+	title={`Cập nhật ${selectedIDs.length} Huynh đệ`}
+	onClose={() => {
+		if (!volunteerStore.isBulkSaving) bulkUpdateOpen = false;
+	}}
+>
+	<form id="bulk-volunteer-update" class="space-y-4" onsubmit={submitBulkUpdate}>
+		<label class="block">
+			<span class="mb-1.5 block text-sm font-medium">Trường cần cập nhật</span>
+			<select
+				bind:value={bulkField}
+				disabled={volunteerStore.isBulkSaving}
+				class="h-11 w-full rounded-md border-[var(--color-border-strong)] text-sm"
+				onchange={changeBulkField}
+			>
+				{#each bulkFields as field}
+					<option value={field.value}>{field.label}</option>
+				{/each}
+			</select>
+		</label>
+
+		<label class="block">
+			<span class="mb-1.5 block text-sm font-medium">Giá trị mới</span>
+			{#if bulkField === 'department'}
+				<DepartmentCombobox bind:value={bulkValue} />
+			{:else if bulkField === 'notes'}
+				<textarea
+					bind:value={bulkValue}
+					disabled={volunteerStore.isBulkSaving}
+					rows="4"
+					class="w-full resize-y rounded-md border-[var(--color-border-strong)] text-sm"></textarea>
+			{:else}
+				<input
+					bind:value={bulkValue}
+					disabled={volunteerStore.isBulkSaving}
+					required={bulkValueRequired}
+					type={bulkField === 'arrival_date' || bulkField === 'departure_date'
+						? 'date'
+						: bulkField === 'avatar_url'
+							? 'url'
+							: bulkField === 'phone'
+								? 'tel'
+								: 'text'}
+					class="h-11 w-full rounded-md border-[var(--color-border-strong)] text-sm"
+				/>
+			{/if}
+		</label>
+	</form>
+
+	{#snippet footer()}
+		<div class="grid grid-cols-2 gap-3">
+			<button
+				type="button"
+				disabled={volunteerStore.isBulkSaving}
+				class="h-11 rounded-md border border-[var(--color-border-strong)] bg-[var(--color-surface)] text-sm font-semibold disabled:opacity-50"
+				onclick={() => (bulkUpdateOpen = false)}>Huỷ</button
+			>
+			<button
+				type="submit"
+				form="bulk-volunteer-update"
+				disabled={volunteerStore.isBulkSaving || (bulkValueRequired && !bulkValue.trim())}
+				class="flex h-11 items-center justify-center gap-2 rounded-md bg-[var(--color-primary)] text-sm font-semibold text-white disabled:opacity-50"
+			>
+				{#if volunteerStore.isBulkSaving}
+					<span class="icon-[lucide--loader-circle] h-4 w-4 animate-spin" aria-hidden="true"></span>
+				{/if}
+				Cập nhật
+			</button>
+		</div>
+	{/snippet}
+</Popup>
 
 {#snippet sortHeader(key: VolunteerSortKey, label: string)}
 	<button

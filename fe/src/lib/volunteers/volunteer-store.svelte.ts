@@ -1,4 +1,6 @@
 import {
+	bulkDeleteVolunteers,
+	bulkUpdateVolunteers,
 	createVolunteer,
 	deleteVolunteer,
 	getVolunteer,
@@ -6,6 +8,7 @@ import {
 	updateVolunteer,
 	type Volunteer,
 	type VolunteerInput,
+	type VolunteerBulkField,
 	type VolunteerSortKey
 } from './api';
 import { toastStore } from '$lib/ui/toast-store.svelte';
@@ -40,6 +43,7 @@ class VolunteerStore {
 	isSorting = $state(false);
 	isLoadingMore = $state(false);
 	isSaving = $state(false);
+	isBulkSaving = $state(false);
 	loaded = $state(false);
 	lastLoadedAt = $state(0);
 	private loadedQuery = '';
@@ -227,6 +231,42 @@ class VolunteerStore {
 		} catch (error) {
 			toastStore.error(message(error));
 			return false;
+		}
+	}
+
+	async bulkUpdate(
+		ids: string[],
+		field: VolunteerBulkField,
+		value: string
+	): Promise<number | null> {
+		if (this.isBulkSaving) return null;
+		this.isBulkSaving = true;
+		try {
+			const result = await bulkUpdateVolunteers(ids, field, value);
+			await this.load(Math.max(this.pageSize, this.items.length));
+			toastStore.success(`Đã cập nhật ${result.updated} Huynh đệ`);
+			return result.updated;
+		} catch (error) {
+			toastStore.error(message(error));
+			return null;
+		} finally {
+			this.isBulkSaving = false;
+		}
+	}
+
+	async bulkDelete(ids: string[]): Promise<number | null> {
+		if (this.isBulkSaving) return null;
+		this.isBulkSaving = true;
+		try {
+			const result = await bulkDeleteVolunteers(ids);
+			await this.load(Math.max(this.pageSize, this.items.length));
+			toastStore.success(`Đã xoá ${result.deleted} Huynh đệ`);
+			return result.deleted;
+		} catch (error) {
+			toastStore.error(message(error));
+			return null;
+		} finally {
+			this.isBulkSaving = false;
 		}
 	}
 

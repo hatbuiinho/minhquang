@@ -48,6 +48,18 @@ export type VolunteerPage = {
 	has_more: boolean;
 };
 
+export type VolunteerBulkField =
+	| 'full_name'
+	| 'dharma_name'
+	| 'birth_date'
+	| 'cultivation_place'
+	| 'phone'
+	| 'department'
+	| 'notes'
+	| 'avatar_url'
+	| 'arrival_date'
+	| 'departure_date';
+
 export async function listVolunteers(
 	query = '',
 	status = '',
@@ -88,6 +100,20 @@ export function updateVolunteer(id: string, input: VolunteerInput) {
 
 export function deleteVolunteer(id: string) {
 	return apiRequest<void>(`/api/volunteers/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+export function bulkUpdateVolunteers(ids: string[], field: VolunteerBulkField, value: string) {
+	return apiRequest<{ updated: number }>('/api/volunteers/bulk', {
+		method: 'PATCH',
+		body: JSON.stringify({ ids, field, value })
+	});
+}
+
+export function bulkDeleteVolunteers(ids: string[]) {
+	return apiRequest<{ deleted: number }>('/api/volunteers/bulk', {
+		method: 'DELETE',
+		body: JSON.stringify({ ids })
+	});
 }
 
 export async function listDepartmentSuggestions(

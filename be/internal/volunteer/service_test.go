@@ -137,3 +137,45 @@ func TestDepartmentIsLimitedToSixtyCharacters(t *testing.T) {
 		t.Fatalf("expected invalid input, got %v", err)
 	}
 }
+
+func TestBulkUpdateAndDeleteVolunteers(t *testing.T) {
+	now := time.Date(2026, 8, 10, 9, 0, 0, 0, time.UTC)
+	store := NewMemoryStore()
+	service := NewService(store, func() time.Time { return now })
+	ids := make([]string, 0, 2)
+	for _, name := range []string{"Nguyen Van An", "Tran Van Binh"} {
+		item, err := service.Create(context.Background(), Input{
+			FullName:    name,
+			ArrivalDate: time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC),
+		})
+		if err != nil {
+			t.Fatalf("create volunteer: %v", err)
+		}
+		ids = append(ids, item.ID)
+	}
+
+	updated, err := service.BulkUpdate(context.Background(), ids, "departure_date", "2026-08-09")
+	if err != nil || updated != 2 {
+		t.Fatalf("bulk update = %d, %v; want 2, nil", updated, err)
+	}
+	departed, err := service.List(context.Background(), ListOptions{Status: "departed"})
+	if err != nil || len(departed) != 2 {
+		t.Fatalf("departed volunteers = %d, %v; want 2, nil", len(departed), err)
+	}
+
+	_, err = service.BulkUpdate(context.Background(), ids, "arrival_date", "2026-08-10")
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("expected atomic date validation error, got %v", err)
+	}
+	for _, id := range ids {
+		item, getErr := service.Get(context.Background(), id)
+		if getErr != nil || item.ArrivalDate.Format("2006-01-02") != "2026-08-01" {
+			t.Fatalf("arrival date changed after failed bulk update: %#v, %v", item, getErr)
+		}
+	}
+
+	deleted, err := service.BulkDelete(context.Background(), append(ids, ids[0]))
+	if err != nil || deleted != 2 {
+		t.Fatalf("bulk delete = %d, %v; want 2, nil", deleted, err)
+	}
+}

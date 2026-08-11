@@ -25,6 +25,12 @@ type volunteerPayload struct {
 	DepartureDate    string `json:"departure_date"`
 }
 
+type volunteerBulkPayload struct {
+	IDs   []string `json:"ids"`
+	Field string   `json:"field"`
+	Value string   `json:"value"`
+}
+
 func NewVolunteerHandler(volunteers *volunteer.Service) *VolunteerHandler {
 	return &VolunteerHandler{volunteers: volunteers}
 }
@@ -116,6 +122,32 @@ func (h *VolunteerHandler) Item(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
+	default:
+		writeError(w, http.StatusMethodNotAllowed, "method_not_allowed", "method is not allowed")
+	}
+}
+
+func (h *VolunteerHandler) Bulk(w http.ResponseWriter, r *http.Request) {
+	var payload volunteerBulkPayload
+	if err := readJSON(r, &payload); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_json", "request body must be valid json")
+		return
+	}
+	switch r.Method {
+	case http.MethodPatch:
+		updated, err := h.volunteers.BulkUpdate(r.Context(), payload.IDs, payload.Field, payload.Value)
+		if err != nil {
+			handleVolunteerError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]int{"updated": updated})
+	case http.MethodDelete:
+		deleted, err := h.volunteers.BulkDelete(r.Context(), payload.IDs)
+		if err != nil {
+			handleVolunteerError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]int{"deleted": deleted})
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method_not_allowed", "method is not allowed")
 	}

@@ -97,3 +97,39 @@ func TestCORSAllowsVolunteerUpdate(t *testing.T) {
 		t.Fatalf("expected PUT in allowed methods, got %q", response.Header().Get("Access-Control-Allow-Methods"))
 	}
 }
+
+func TestCORSAllowsConfiguredProductionOrigin(t *testing.T) {
+	t.Setenv("CORS_ALLOWED_ORIGINS", "https://app.example.com, https://admin.example.com/")
+	handler := withCORS(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	for _, origin := range []string{"https://app.example.com", "https://admin.example.com"} {
+		request := httptest.NewRequest(http.MethodOptions, "/api/volunteers", nil)
+		request.Header.Set("Origin", origin)
+		request.Header.Set("Access-Control-Request-Method", http.MethodGet)
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+
+		if response.Header().Get("Access-Control-Allow-Origin") != origin {
+			t.Fatalf("expected configured origin %q to be allowed, got headers %#v", origin, response.Header())
+		}
+	}
+}
+
+func TestCORSRejectsUnconfiguredProductionOrigin(t *testing.T) {
+	t.Setenv("CORS_ALLOWED_ORIGINS", "https://app.example.com")
+	handler := withCORS(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	request := httptest.NewRequest(http.MethodOptions, "/api/volunteers", nil)
+	request.Header.Set("Origin", "https://app.example.com.evil.test")
+	request.Header.Set("Access-Control-Request-Method", http.MethodGet)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if origin := response.Header().Get("Access-Control-Allow-Origin"); origin != "" {
+		t.Fatalf("expected unconfigured origin to be rejected, got %q", origin)
+	}
+}

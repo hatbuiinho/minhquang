@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"net/netip"
 	"net/url"
+	"os"
+	"strings"
 
 	"minhquang/be/internal/department"
 	"minhquang/be/internal/device"
@@ -43,6 +45,7 @@ func NewRouter(
 	protected.HandleFunc("/api/auth/me", authHandler.Me)
 	protected.HandleFunc("/api/users", userHandler.Collection)
 	protected.HandleFunc("/api/volunteers", volunteerHandler.Collection)
+	protected.HandleFunc("/api/volunteers/bulk", volunteerHandler.Bulk)
 	protected.HandleFunc("/api/volunteers/", volunteerHandler.Item)
 	protected.HandleFunc("/api/departments", departmentHandler.Collection)
 	protected.HandleFunc("/api/departments/", departmentHandler.Item)
@@ -56,13 +59,17 @@ func NewRouter(
 }
 
 func withCORS(next http.Handler) http.Handler {
+	configuredOrigins := parseAllowedOrigins(os.Getenv("CORS_ALLOWED_ORIGINS"))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
-		if origin != "" && allowedOrigin(origin) {
+		if origin != "" && allowedOrigin(origin, configuredOrigins) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
-			w.Header().Set("Vary", "Origin")
+			w.Header().Add("Vary", "Origin")
+			w.Header().Add("Vary", "Access-Control-Request-Method")
+			w.Header().Add("Vary", "Access-Control-Request-Headers")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Max-Age", "600")
 		}
 
 		if r.Method == http.MethodOptions {
@@ -74,10 +81,13 @@ func withCORS(next http.Handler) http.Handler {
 	})
 }
 
-func allowedOrigin(origin string) bool {
-	parsed, err := url.Parse(origin)
-	if err != nil {
+func allowedOrigin(origin string, configuredOrigins map[string]struct{}) bool {
+	normalized, parsed, ok := normalizeOrigin(origin)
+	if !ok {
 		return false
+	}
+	if _, allowed := configuredOrigins[normalized]; allowed {
+		return true
 	}
 
 	host := parsed.Hostname()
@@ -97,6 +107,43 @@ func allowedOrigin(origin string) bool {
 	}
 
 	return false
+}
+
+func parseAllowedOrigins(value string) map[string]struct{} {
+	origins := make(map[string]struct{})
+	for _, rawOrigin := range strings.Split(value, ",") {
+		origin, _, ok := normalizeOrigin(rawOrigin)
+		if ok {
+			origins[origin] = struct{}{}
+		}
+	}
+	return origins
+}
+
+func normalizeOrigin(value string) (string, *url.URL, bool) {
+	value = strings.TrimSpace(value)
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return "", nil, false
+	}
+	scheme := strings.ToLower(parsed.Scheme)
+	if scheme != "http" && scheme != "https" {
+		return "", nil, false
+	}
+	if parsed.Path != "" && parsed.Path != "/" {
+		return "", nil, false
+	}
+	host := strings.ToLower(parsed.Host)
+	if (scheme == "http" && parsed.Port() == "80") || (scheme == "https" && parsed.Port() == "443") {
+		host = strings.ToLower(parsed.Hostname())
+		if strings.Contains(host, ":") {
+			host = "[" + host + "]"
+		}
+	}
+	parsed.Scheme = scheme
+	parsed.Host = host
+	parsed.Path = ""
+	return scheme + "://" + host, parsed, true
 }
 
 func allowedDevOriginPrefixes() []netip.Prefix {

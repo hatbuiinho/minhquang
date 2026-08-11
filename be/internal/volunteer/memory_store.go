@@ -2,6 +2,7 @@ package volunteer
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -146,4 +147,70 @@ func (s *MemoryStore) Delete(_ context.Context, id string) error {
 	}
 	delete(s.items, id)
 	return nil
+}
+
+func (s *MemoryStore) BulkUpdate(_ context.Context, ids []string, patch BulkPatch) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, id := range ids {
+		item, exists := s.items[id]
+		if !exists {
+			continue
+		}
+		if patch.Field == "arrival_date" && item.DepartureDate != nil && item.DepartureDate.Before(*patch.DateValue) {
+			return 0, fmt.Errorf("%w: date conflicts with an existing departure date", ErrInvalidInput)
+		}
+		if patch.Field == "departure_date" && patch.DateValue != nil && patch.DateValue.Before(item.ArrivalDate) {
+			return 0, fmt.Errorf("%w: date conflicts with an existing arrival date", ErrInvalidInput)
+		}
+	}
+	updated := 0
+	for _, id := range ids {
+		item, exists := s.items[id]
+		if !exists {
+			continue
+		}
+		switch patch.Field {
+		case "full_name":
+			item.FullName = patch.TextValue
+		case "dharma_name":
+			item.DharmaName = patch.TextValue
+		case "birth_date":
+			item.BirthDate = patch.TextValue
+		case "cultivation_place":
+			item.CultivationPlace = patch.TextValue
+		case "phone":
+			item.Phone = patch.TextValue
+		case "department":
+			item.DepartmentID, item.Department = patch.DepartmentID, patch.Department
+		case "notes":
+			item.Notes = patch.TextValue
+		case "avatar_url":
+			item.AvatarURL = patch.TextValue
+		case "arrival_date":
+			item.ArrivalDate = *patch.DateValue
+		case "departure_date":
+			item.DepartureDate = patch.DateValue
+		default:
+			return 0, fmt.Errorf("%w: unsupported bulk update field", ErrInvalidInput)
+		}
+		item.UpdatedAt = patch.UpdatedAt
+		s.items[id] = item
+		updated++
+	}
+	return updated, nil
+}
+
+func (s *MemoryStore) BulkDelete(_ context.Context, ids []string) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	deleted := 0
+	for _, id := range ids {
+		if _, exists := s.items[id]; !exists {
+			continue
+		}
+		delete(s.items, id)
+		deleted++
+	}
+	return deleted, nil
 }

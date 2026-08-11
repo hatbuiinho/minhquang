@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -86,6 +87,47 @@ func (s *PostgresStore) Delete(ctx context.Context, id string) error {
 		return ErrNotFound
 	}
 	return nil
+}
+
+func (s *PostgresStore) BulkUpdate(ctx context.Context, ids []string, patch BulkPatch) (int, error) {
+	assignments := map[string]string{
+		"full_name": "full_name=$2", "dharma_name": "dharma_name=$2", "birth_date": "birth_date=$2",
+		"cultivation_place": "cultivation_place=$2", "phone": "phone=$2", "notes": "notes=$2",
+		"avatar_url": "avatar_url=$2", "department": "department_id=NULLIF($2,'')",
+		"arrival_date": "arrival_date=$2", "departure_date": "departure_date=$2",
+	}
+	assignment, ok := assignments[patch.Field]
+	if !ok {
+		return 0, fmt.Errorf("%w: unsupported bulk update field", ErrInvalidInput)
+	}
+	var value any = patch.TextValue
+	switch patch.Field {
+	case "department":
+		value = patch.DepartmentID
+	case "arrival_date", "departure_date":
+		if patch.DateValue == nil {
+			value = nil
+		} else {
+			value = *patch.DateValue
+		}
+	}
+	result, err := s.pool.Exec(ctx, `UPDATE volunteers SET `+assignment+`, updated_at=$3 WHERE id=ANY($1)`, ids, value, patch.UpdatedAt)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23514" {
+			return 0, fmt.Errorf("%w: date conflicts with an existing arrival or departure date", ErrInvalidInput)
+		}
+		return 0, fmt.Errorf("bulk update volunteers: %w", err)
+	}
+	return int(result.RowsAffected()), nil
+}
+
+func (s *PostgresStore) BulkDelete(ctx context.Context, ids []string) (int, error) {
+	result, err := s.pool.Exec(ctx, `DELETE FROM volunteers WHERE id=ANY($1)`, ids)
+	if err != nil {
+		return 0, fmt.Errorf("bulk delete volunteers: %w", err)
+	}
+	return int(result.RowsAffected()), nil
 }
 
 type scanner interface{ Scan(dest ...any) error }
