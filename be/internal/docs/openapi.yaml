@@ -151,14 +151,14 @@ paths:
   /api/users:
     get:
       tags: [Users]
-      summary: Danh sách tài khoản quản trị
+      summary: Danh sách tài khoản
       security: [{ bearerAuth: [] }]
       responses:
         "200":
           description: Danh sách tài khoản
     post:
       tags: [Users]
-      summary: Tạo tài khoản quản trị
+      summary: Tạo tài khoản
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
@@ -166,11 +166,12 @@ paths:
           application/json:
             schema:
               type: object
-              required: [username, display_name, password]
+              required: [username, display_name, password, role]
               properties:
                 username: { type: string }
                 display_name: { type: string }
-                password: { type: string, minLength: 8 }
+                password: { type: string, format: password, minLength: 8 }
+                role: { type: string, enum: [admin, viewer] }
       responses:
         "201":
           description: Tài khoản đã tạo
@@ -178,6 +179,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
+  /api/users/{id}:
+    put:
+      tags: [Users]
+      summary: Cập nhật tài khoản
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, display_name, role]
+              properties:
+                username: { type: string }
+                display_name: { type: string }
+                role: { type: string, enum: [admin, viewer] }
+      responses:
+        "200":
+          description: Tài khoản đã cập nhật
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404": { description: Không tìm thấy tài khoản }
   /api/volunteers:
     get:
       tags: [Volunteers]
@@ -384,13 +414,26 @@ components:
   schemas:
     User:
       type: object
-      required: [id, username, display_name, avatar_url, role, active, created_at, updated_at]
+      required: [id, username, display_name, avatar_url, role, permissions, active, created_at, updated_at]
       properties:
         id: { type: string }
         username: { type: string }
         display_name: { type: string }
         avatar_url: { type: string }
-        role: { type: string, enum: [admin] }
+        role: { type: string, enum: [admin, viewer] }
+        permissions:
+          type: array
+          items:
+            type: string
+            enum:
+              - volunteer.read
+              - volunteer.create
+              - volunteer.update
+              - volunteer.delete
+              - department.read
+              - department.manage
+              - user.read
+              - user.manage
         active: { type: boolean }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }

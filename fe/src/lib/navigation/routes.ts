@@ -46,9 +46,9 @@ export function parseRoute(pathname: string): AppRoute {
 			title: 'Chi tiết Huynh đệ',
 			volunteerId: decodeURIComponent(detail[1])
 		};
-	if (path === '/users') return { name: 'users', path, title: 'Tài khoản quản trị' };
+	if (path === '/users') return { name: 'users', path, title: 'Tài khoản' };
 	if (path === '/profile') return { name: 'profile', path, title: 'Hồ sơ cá nhân' };
-	if (path === '/departments') return { name: 'departments', path, title: 'Quản lý phân ban' };
+	if (path === '/departments') return { name: 'departments', path, title: 'Phân ban' };
 	return { name: 'volunteers', path: '/volunteers', title: 'Huynh đệ công quả' };
 }
 
@@ -57,3 +57,17 @@ export function mainRouteFor(route: AppRoute): MainRouteName {
 	if (route.name === 'profile') return 'users';
 	return 'volunteers';
 }
+
+export function routePermission(route: AppRoute): Permission | null {
+	switch (route.name) {
+		case 'users':
+			return 'user.read';
+		case 'volunteer-new':
+			return 'volunteer.create';
+		case 'volunteer-edit':
+			return 'volunteer.update';
+		default:
+			return null;
+	}
+}
+import type { Permission } from '$lib/auth/auth-store.svelte';

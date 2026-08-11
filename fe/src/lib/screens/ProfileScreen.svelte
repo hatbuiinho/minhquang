@@ -145,7 +145,9 @@
 			{/if}
 			<div class="grid gap-1 py-4 sm:grid-cols-[11rem_1fr] sm:items-center">
 				<dt class="text-sm text-[var(--color-text-secondary)]">Vai trò</dt>
-				<dd class="text-sm font-medium">Quản trị viên</dd>
+				<dd class="text-sm font-medium">
+					{user?.role === 'admin' ? 'Quản trị viên' : 'Giám sát viên'}
+				</dd>
 			</div>
 			<div class="grid gap-1 py-4 sm:grid-cols-[11rem_1fr] sm:items-center">
 				<dt class="text-sm text-[var(--color-text-secondary)]">Trạng thái</dt>

@@ -14,6 +14,7 @@
 	import AvatarUploader from '$lib/ui/AvatarUploader.svelte';
 	import { uploadAvatar } from '$lib/uploads/api';
 	import { toastStore } from '$lib/ui/toast-store.svelte';
+	import { authStore } from '$lib/auth/auth-store.svelte';
 
 	let { volunteerId }: { volunteerId: string } = $props();
 	let item = $derived(volunteerStore.selected?.id === volunteerId ? volunteerStore.selected : null);
@@ -61,6 +62,7 @@
 				<AvatarUploader
 					avatarUrl={item.avatar_url}
 					displayName={item.full_name}
+					editable={authStore.can('volunteer.update')}
 					uploading={avatarUploading || volunteerStore.isAvatarSaving}
 					onselect={selectAvatar}
 				/>
@@ -100,22 +102,24 @@
 				</div>
 			{/if}
 
-			<div class="mt-6 grid grid-cols-2 gap-3 md:ml-auto md:max-w-sm">
-				<button
-					type="button"
-					class="flex h-11 items-center justify-center gap-2 rounded-md bg-[var(--color-primary)] text-sm font-semibold text-white"
-					onclick={() => router.push(`/volunteers/${item.id}/edit`)}
-				>
-					<span class="icon-[lucide--pencil] h-4 w-4" aria-hidden="true"></span>Sửa
-				</button>
-				<button
-					type="button"
-					class="flex h-11 items-center justify-center gap-2 rounded-md border border-[var(--color-danger)] text-sm font-semibold text-[var(--color-danger)]"
-					onclick={remove}
-				>
-					<span class="icon-[lucide--trash-2] h-4 w-4" aria-hidden="true"></span>Xoá
-				</button>
-			</div>
+			{#if authStore.can('volunteer.update') || authStore.can('volunteer.delete')}
+				<div class="mt-6 flex justify-end gap-3">
+					{#if authStore.can('volunteer.update')}<button
+							type="button"
+							class="flex h-11 min-w-36 items-center justify-center gap-2 rounded-md bg-[var(--color-primary)] px-4 text-sm font-semibold text-white"
+							onclick={() => router.push(`/volunteers/${item.id}/edit`)}
+						>
+							<span class="icon-[lucide--pencil] h-4 w-4" aria-hidden="true"></span>Sửa
+						</button>{/if}
+					{#if authStore.can('volunteer.delete')}<button
+							type="button"
+							class="flex h-11 min-w-36 items-center justify-center gap-2 rounded-md border border-[var(--color-danger)] px-4 text-sm font-semibold text-[var(--color-danger)]"
+							onclick={remove}
+						>
+							<span class="icon-[lucide--trash-2] h-4 w-4" aria-hidden="true"></span>Xoá
+						</button>{/if}
+				</div>
+			{/if}
 		{/if}
 	</div>
 </section>

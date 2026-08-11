@@ -40,6 +40,26 @@ func (s *MemoryStore) List(_ context.Context) ([]User, error) {
 	return items, nil
 }
 
+func (s *MemoryStore) UpdateAccount(_ context.Context, id, username, displayName, role string, updatedAt time.Time) (User, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	item, exists := s.users[id]
+	if !exists {
+		return User{}, ErrNotFound
+	}
+	for existingID, existing := range s.users {
+		if existingID != id && existing.Username == username {
+			return User{}, ErrUsernameExists
+		}
+	}
+	item.Username = username
+	item.DisplayName = displayName
+	item.Role = role
+	item.UpdatedAt = updatedAt
+	s.users[id] = item
+	return item, nil
+}
+
 func (s *MemoryStore) FindByUsername(_ context.Context, username string) (User, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

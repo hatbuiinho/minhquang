@@ -9,11 +9,13 @@
 		avatarUrl = '',
 		displayName,
 		uploading = false,
+		editable = true,
 		onselect
 	}: {
 		avatarUrl?: string;
 		displayName: string;
 		uploading?: boolean;
+		editable?: boolean;
 		onselect: (file: File) => void | Promise<void>;
 	} = $props();
 	let libraryInput = $state<HTMLInputElement>();
@@ -111,58 +113,58 @@
 					></span></span
 				>{/if}
 		</button>
-		<div class="absolute right-0 bottom-0">
-			<button
-				bind:this={cameraButton}
-				type="button"
-				disabled={uploading}
-				class="grid h-10 w-10 place-items-center rounded-full border-2 border-white bg-[var(--color-primary)] text-white shadow"
-				aria-label="Đổi ảnh đại diện"
-				onclick={() => void toggleMenu()}
-				><span class="icon-[lucide--camera] h-4.5 w-4.5" aria-hidden="true"></span></button
-			>
-			{#if menuOpen}
+		{#if editable}<div class="absolute right-0 bottom-0">
 				<button
-					use:portal
+					bind:this={cameraButton}
 					type="button"
-					class="fixed inset-0 z-[59] cursor-default"
-					aria-label="Đóng menu ảnh"
-					onclick={() => (menuOpen = false)}
-				></button>
-				<div
-					use:portal
-					bind:this={menuElement}
-					class="fixed z-[60] w-[min(13rem,calc(100vw-1rem))] overflow-hidden rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] py-1 shadow-[var(--shadow-popover)]"
-					style={`left: ${menuLeft}px; top: ${menuTop}px; visibility: ${menuPositioned ? 'visible' : 'hidden'};`}
+					disabled={uploading}
+					class="grid h-10 w-10 place-items-center rounded-full border-2 border-white bg-[var(--color-primary)] text-white shadow"
+					aria-label="Đổi ảnh đại diện"
+					onclick={() => void toggleMenu()}
+					><span class="icon-[lucide--camera] h-4.5 w-4.5" aria-hidden="true"></span></button
 				>
+				{#if menuOpen}
 					<button
+						use:portal
 						type="button"
-						class="flex h-11 w-full items-center gap-3 px-3 text-sm hover:bg-[var(--color-surface-muted)]"
-						onclick={() => {
-							menuOpen = false;
-							cameraInput?.click();
-						}}
-						><span class="icon-[lucide--camera] h-4.5 w-4.5" aria-hidden="true"></span>Chụp ảnh</button
+						class="fixed inset-0 z-[59] cursor-default"
+						aria-label="Đóng menu ảnh"
+						onclick={() => (menuOpen = false)}
+					></button>
+					<div
+						use:portal
+						bind:this={menuElement}
+						class="fixed z-[60] w-[min(13rem,calc(100vw-1rem))] overflow-hidden rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] py-1 shadow-[var(--shadow-popover)]"
+						style={`left: ${menuLeft}px; top: ${menuTop}px; visibility: ${menuPositioned ? 'visible' : 'hidden'};`}
 					>
-					<button
-						type="button"
-						class="flex h-11 w-full items-center gap-3 px-3 text-sm hover:bg-[var(--color-surface-muted)]"
-						onclick={() => {
-							menuOpen = false;
-							libraryInput?.click();
-						}}
-						><span class="icon-[lucide--image] h-4.5 w-4.5" aria-hidden="true"></span>Chọn từ thư
-						viện</button
-					>
-				</div>
-			{/if}
-		</div>
+						<button
+							type="button"
+							class="flex h-11 w-full items-center gap-3 px-3 text-sm hover:bg-[var(--color-surface-muted)]"
+							onclick={() => {
+								menuOpen = false;
+								cameraInput?.click();
+							}}
+							><span class="icon-[lucide--camera] h-4.5 w-4.5" aria-hidden="true"></span>Chụp ảnh</button
+						>
+						<button
+							type="button"
+							class="flex h-11 w-full items-center gap-3 px-3 text-sm hover:bg-[var(--color-surface-muted)]"
+							onclick={() => {
+								menuOpen = false;
+								libraryInput?.click();
+							}}
+							><span class="icon-[lucide--image] h-4.5 w-4.5" aria-hidden="true"></span>Chọn từ thư
+							viện</button
+						>
+					</div>
+				{/if}
+			</div>{/if}
 	</div>
 	<div class="min-w-0 pt-1">
 		<p class="text-sm font-semibold">Ảnh đại diện</p>
-		<p class="mt-1 text-sm leading-5 text-[var(--color-text-secondary)]">
-			Chọn ảnh rõ khuôn mặt. Ảnh được cắt vuông trước khi tải lên.
-		</p>
+		{#if editable}<p class="mt-1 text-sm leading-5 text-[var(--color-text-secondary)]">
+				Chọn ảnh rõ khuôn mặt. Ảnh được cắt vuông trước khi tải lên.
+			</p>{/if}
 		{#if avatarUrl}<button
 				type="button"
 				class="mt-2 text-sm font-semibold text-[var(--color-primary)]"

@@ -8,6 +8,7 @@ import (
 type Store interface {
 	Create(ctx context.Context, item User) (User, error)
 	List(ctx context.Context) ([]User, error)
+	UpdateAccount(ctx context.Context, id, username, displayName, role string, updatedAt time.Time) (User, error)
 	FindByUsername(ctx context.Context, username string) (User, error)
 	CreateSession(ctx context.Context, session Session) error
 	UserBySession(ctx context.Context, tokenHash string) (User, error)

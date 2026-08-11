@@ -41,6 +41,7 @@ func main() {
 		Username:    os.Getenv("INITIAL_ADMIN_USERNAME"),
 		DisplayName: env("INITIAL_ADMIN_DISPLAY_NAME", "Ban quản trị"),
 		Password:    os.Getenv("INITIAL_ADMIN_PASSWORD"),
+		Role:        user.RoleAdmin,
 	}); err != nil {
 		log.Fatalf("create initial admin: %v", err)
 	}

@@ -16,6 +16,9 @@ func TestCreateAndLogin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create user: %v", err)
 	}
+	if created.Role != RoleViewer || !HasPermission(created.Role, PermissionVolunteerRead) || !HasPermission(created.Role, PermissionUserRead) || HasPermission(created.Role, PermissionUserManage) {
+		t.Fatalf("unexpected default viewer permissions: %#v", created)
+	}
 	result, err := service.Login(context.Background(), "ADMIN", "password123")
 	if err != nil {
 		t.Fatalf("login: %v", err)
@@ -25,6 +28,74 @@ func TestCreateAndLogin(t *testing.T) {
 	}
 	if _, err := service.Authenticate(context.Background(), result.Token); err != nil {
 		t.Fatalf("authenticate: %v", err)
+	}
+}
+
+func TestCreateAdminReturnsAdminPermissions(t *testing.T) {
+	service := NewService(NewMemoryStore(), time.Now)
+	created, err := service.Create(context.Background(), CreateInput{
+		Username: "admin", DisplayName: "Ban quan tri", Password: "password123", Role: RoleAdmin,
+	})
+	if err != nil {
+		t.Fatalf("create admin: %v", err)
+	}
+	if created.Role != RoleAdmin || !HasPermission(created.Role, PermissionUserManage) || len(created.Permissions) != 8 {
+		t.Fatalf("unexpected admin permissions: %#v", created)
+	}
+	if _, err := service.Create(context.Background(), CreateInput{
+		Username: "invalid", DisplayName: "Invalid", Password: "password123", Role: "owner",
+	}); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("expected invalid role error, got %v", err)
+	}
+}
+
+func TestUpdateAccountNormalizesFieldsAndRole(t *testing.T) {
+	now := time.Date(2026, 8, 11, 10, 0, 0, 0, time.UTC)
+	service := NewService(NewMemoryStore(), func() time.Time { return now })
+	created, err := service.Create(context.Background(), CreateInput{
+		Username: "viewer", DisplayName: "Tai khoan xem", Password: "password123", Role: RoleViewer,
+	})
+	if err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+	actor := User{ID: "admin-id", Role: RoleAdmin}
+	updated, err := service.Update(context.Background(), actor, created.ID, UpdateInput{
+		Username: "  EDITOR  ", DisplayName: "  Ban Quan Tri  ", Role: RoleAdmin,
+	})
+	if err != nil {
+		t.Fatalf("update user: %v", err)
+	}
+	if updated.Username != "editor" || updated.DisplayName != "Ban Quan Tri" || updated.Role != RoleAdmin {
+		t.Fatalf("unexpected updated user: %#v", updated)
+	}
+	if !HasPermission(updated.Role, PermissionUserManage) || updated.UpdatedAt != now {
+		t.Fatalf("unexpected updated permissions or timestamp: %#v", updated)
+	}
+	if _, err := service.Update(context.Background(), actor, created.ID, UpdateInput{
+		Username: "editor", DisplayName: "Ban Quan Tri", Role: "owner",
+	}); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("expected invalid role error, got %v", err)
+	}
+	other, err := service.Create(context.Background(), CreateInput{
+		Username: "other", DisplayName: "Tai khoan khac", Password: "password123",
+	})
+	if err != nil {
+		t.Fatalf("create other user: %v", err)
+	}
+	if _, err := service.Update(context.Background(), actor, other.ID, UpdateInput{
+		Username: updated.Username, DisplayName: other.DisplayName, Role: other.Role,
+	}); !errors.Is(err, ErrUsernameExists) {
+		t.Fatalf("expected duplicate username error, got %v", err)
+	}
+	if _, err := service.Update(context.Background(), actor, "missing", UpdateInput{
+		Username: "missing", DisplayName: "Missing", Role: RoleViewer,
+	}); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("expected not found error, got %v", err)
+	}
+	if _, err := service.Update(context.Background(), updated, updated.ID, UpdateInput{
+		Username: updated.Username, DisplayName: updated.DisplayName, Role: RoleViewer,
+	}); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("expected self role change error, got %v", err)
 	}
 }
 

@@ -10,6 +10,9 @@
 	let active = $derived(mainRouteFor(route));
 	let profileMenuOpen = $state(false);
 	let profileMenuRoot = $state<HTMLDivElement>();
+	let navItems = $derived(
+		bottomNavItems.filter((item) => item.name !== 'users' || authStore.can('user.read'))
+	);
 
 	$effect(() => {
 		route.path;
@@ -57,7 +60,7 @@
 	</div>
 
 	<nav class="flex-1 space-y-1 px-3 py-5" aria-label="Điều hướng chính">
-		{#each bottomNavItems as item (item.name)}
+		{#each navItems as item (item.name)}
 			<button
 				type="button"
 				class={[

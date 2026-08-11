@@ -26,8 +26,15 @@ func NewService(store Store, now func() time.Time) *Service {
 func (s *Service) Create(ctx context.Context, input CreateInput) (User, error) {
 	username := strings.ToLower(strings.TrimSpace(input.Username))
 	displayName := strings.TrimSpace(input.DisplayName)
+	role := strings.ToLower(strings.TrimSpace(input.Role))
+	if role == "" {
+		role = RoleViewer
+	}
 	if username == "" || displayName == "" {
 		return User{}, fmt.Errorf("%w: username and display_name are required", ErrInvalidInput)
+	}
+	if role != RoleAdmin && role != RoleViewer {
+		return User{}, fmt.Errorf("%w: role must be admin or viewer", ErrInvalidInput)
 	}
 	if len(input.Password) < 8 {
 		return User{}, fmt.Errorf("%w: password must contain at least 8 characters", ErrInvalidInput)
@@ -37,16 +44,17 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (User, error) {
 		return User{}, fmt.Errorf("hash password: %w", err)
 	}
 	now := s.now().UTC()
-	return s.store.Create(ctx, User{
+	item, err := s.store.Create(ctx, User{
 		ID:           newID("usr"),
 		Username:     username,
 		DisplayName:  displayName,
 		PasswordHash: string(hash),
-		Role:         "admin",
+		Role:         role,
 		Active:       true,
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	})
+	return withPermissions(item), err
 }
 
 func (s *Service) EnsureInitialAdmin(ctx context.Context, input CreateInput) error {
@@ -62,7 +70,31 @@ func (s *Service) EnsureInitialAdmin(ctx context.Context, input CreateInput) err
 	return err
 }
 
-func (s *Service) List(ctx context.Context) ([]User, error) { return s.store.List(ctx) }
+func (s *Service) List(ctx context.Context) ([]User, error) {
+	items, err := s.store.List(ctx)
+	for index := range items {
+		items[index] = withPermissions(items[index])
+	}
+	return items, err
+}
+
+func (s *Service) Update(ctx context.Context, actor User, id string, input UpdateInput) (User, error) {
+	id = strings.TrimSpace(id)
+	username := strings.ToLower(strings.TrimSpace(input.Username))
+	displayName := strings.TrimSpace(input.DisplayName)
+	role := strings.ToLower(strings.TrimSpace(input.Role))
+	if id == "" || username == "" || displayName == "" {
+		return User{}, fmt.Errorf("%w: id, username and display_name are required", ErrInvalidInput)
+	}
+	if role != RoleAdmin && role != RoleViewer {
+		return User{}, fmt.Errorf("%w: role must be admin or viewer", ErrInvalidInput)
+	}
+	if actor.ID == id && role != actor.Role {
+		return User{}, fmt.Errorf("%w: cannot change your own role", ErrInvalidInput)
+	}
+	item, err := s.store.UpdateAccount(ctx, id, username, displayName, role, s.now().UTC())
+	return withPermissions(item), err
+}
 
 func (s *Service) Login(ctx context.Context, username, password string) (LoginResult, error) {
 	item, err := s.store.FindByUsername(ctx, strings.ToLower(strings.TrimSpace(username)))
@@ -78,14 +110,15 @@ func (s *Service) Login(ctx context.Context, username, password string) (LoginRe
 	if err := s.store.CreateSession(ctx, Session{TokenHash: hashToken(token), UserID: item.ID, ExpiresAt: expiresAt, CreatedAt: now}); err != nil {
 		return LoginResult{}, err
 	}
-	return LoginResult{Token: token, ExpiresAt: expiresAt, User: item}, nil
+	return LoginResult{Token: token, ExpiresAt: expiresAt, User: withPermissions(item)}, nil
 }
 
 func (s *Service) Authenticate(ctx context.Context, token string) (User, error) {
 	if strings.TrimSpace(token) == "" {
 		return User{}, ErrInvalidCredentials
 	}
-	return s.store.UserBySession(ctx, hashToken(token))
+	item, err := s.store.UserBySession(ctx, hashToken(token))
+	return withPermissions(item), err
 }
 
 func (s *Service) Logout(ctx context.Context, token string) error {
@@ -127,7 +160,8 @@ func (s *Service) UpdateProfile(ctx context.Context, item User, username, displa
 	item.Username = username
 	item.DisplayName = displayName
 	item.UpdatedAt = s.now().UTC()
-	return s.store.UpdateProfile(ctx, item)
+	updated, err := s.store.UpdateProfile(ctx, item)
+	return withPermissions(updated), err
 }
 
 func (s *Service) UpdateAvatar(ctx context.Context, item User, avatarURL string) (User, error) {
@@ -140,7 +174,13 @@ func (s *Service) UpdateAvatar(ctx context.Context, item User, avatarURL string)
 	}
 	item.AvatarURL = avatarURL
 	item.UpdatedAt = s.now().UTC()
-	return s.store.UpdateAvatar(ctx, item)
+	updated, err := s.store.UpdateAvatar(ctx, item)
+	return withPermissions(updated), err
+}
+
+func withPermissions(item User) User {
+	item.Permissions = PermissionsForRole(item.Role)
+	return item
 }
 
 func randomToken() (string, error) {

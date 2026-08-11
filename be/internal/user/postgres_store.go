@@ -45,6 +45,16 @@ func (s *PostgresStore) List(ctx context.Context) ([]User, error) {
 	return items, rows.Err()
 }
 
+func (s *PostgresStore) UpdateAccount(ctx context.Context, id, username, displayName, role string, updatedAt time.Time) (User, error) {
+	query := `UPDATE users SET username=$2, display_name=$3, role=$4, updated_at=$5 WHERE id=$1 RETURNING ` + userColumns
+	updated, err := scanUser(s.pool.QueryRow(ctx, query, id, username, displayName, role, updatedAt))
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		return User{}, ErrUsernameExists
+	}
+	return updated, err
+}
+
 func (s *PostgresStore) FindByUsername(ctx context.Context, username string) (User, error) {
 	return scanUser(s.pool.QueryRow(ctx, `SELECT `+userColumns+` FROM users WHERE username = $1`, username))
 }

@@ -1,12 +1,25 @@
 import { apiRequest, setAccessToken } from '$lib/api/client';
 import { toastStore } from '$lib/ui/toast-store.svelte';
 
+export type Permission =
+	| 'volunteer.read'
+	| 'volunteer.create'
+	| 'volunteer.update'
+	| 'volunteer.delete'
+	| 'department.read'
+	| 'department.manage'
+	| 'user.read'
+	| 'user.manage';
+
+export type UserRole = 'admin' | 'viewer';
+
 export type AdminUser = {
 	id: string;
 	username: string;
 	display_name: string;
 	avatar_url: string;
-	role: 'admin';
+	role: UserRole;
+	permissions: Permission[];
 	active: boolean;
 	created_at: string;
 	updated_at: string;
@@ -22,6 +35,14 @@ class AuthStore {
 	isUpdatingProfile = $state(false);
 	isUpdatingAvatar = $state(false);
 	error = $state('');
+
+	can(permission: Permission): boolean {
+		return this.user?.permissions?.includes(permission) ?? false;
+	}
+
+	syncUser(item: AdminUser) {
+		if (this.user?.id === item.id) this.user = item;
+	}
 
 	async init() {
 		const token = localStorage.getItem(tokenKey) ?? '';

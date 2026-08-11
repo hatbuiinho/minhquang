@@ -15,6 +15,7 @@
 	import Popup from '$lib/ui/Popup.svelte';
 	import { popupStore } from '$lib/ui/popup-store.svelte';
 	import DepartmentCombobox from '$lib/volunteers/DepartmentCombobox.svelte';
+	import { authStore } from '$lib/auth/auth-store.svelte';
 
 	let searchTimer: ReturnType<typeof setTimeout> | undefined;
 	let departments = $state<Department[]>([]);
@@ -44,6 +45,10 @@
 	);
 	let someRowsSelected = $derived(volunteerStore.items.some((item) => selectedSet.has(item.id)));
 	let bulkValueRequired = $derived(bulkField === 'full_name' || bulkField === 'arrival_date');
+	let canCreate = $derived(authStore.can('volunteer.create'));
+	let canUpdate = $derived(authStore.can('volunteer.update'));
+	let canDelete = $derived(authStore.can('volunteer.delete'));
+	let canSelect = $derived(canUpdate || canDelete);
 
 	$effect(() => {
 		if (selectAllCheckbox) selectAllCheckbox.indeterminate = someRowsSelected && !allRowsSelected;
@@ -166,14 +171,14 @@
 		class="border-b border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3 md:px-6 md:py-4 lg:px-8"
 	>
 		<div class="mx-auto flex max-w-[1320px] flex-col gap-3 md:flex-row md:items-center">
-			<button
-				type="button"
-				class="hidden h-11 items-center justify-center gap-2 rounded-md bg-[var(--color-primary)] px-4 text-sm font-semibold text-white md:order-2 md:flex md:w-auto"
-				onclick={() => router.push('/volunteers/new')}
-			>
-				<span class="icon-[lucide--user-plus] h-5 w-5" aria-hidden="true"></span>
-				Thêm Huynh đệ công quả
-			</button>
+			{#if canCreate}<button
+					type="button"
+					class="hidden h-11 items-center justify-center gap-2 rounded-md bg-[var(--color-primary)] px-4 text-sm font-semibold text-white md:order-2 md:flex md:w-auto"
+					onclick={() => router.push('/volunteers/new')}
+				>
+					<span class="icon-[lucide--user-plus] h-5 w-5" aria-hidden="true"></span>
+					Thêm Huynh đệ công quả
+				</button>{/if}
 			<div class="grid min-w-0 flex-1 grid-cols-2 gap-2 md:order-1 md:flex">
 				<label class="relative col-span-2 min-w-0 md:flex-1">
 					<span
@@ -236,29 +241,29 @@
 						aria-label="Đang cập nhật danh sách"
 					></span>
 				{/if}
-				{#if selectedIDs.length > 0}
+				{#if canSelect && selectedIDs.length > 0}
 					<div class="ml-auto hidden items-center gap-2 lg:flex">
 						<span class="mr-1 font-medium text-[var(--color-text)]"
 							>Đã chọn {selectedIDs.length}</span
 						>
-						<button
-							type="button"
-							disabled={volunteerStore.isBulkSaving}
-							class="flex h-9 items-center gap-1.5 rounded-md border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 text-xs font-semibold text-[var(--color-primary-dark)] disabled:opacity-50"
-							onclick={openBulkUpdate}
-						>
-							<span class="icon-[lucide--square-pen] h-4 w-4" aria-hidden="true"></span>
-							Cập nhật
-						</button>
-						<button
-							type="button"
-							disabled={volunteerStore.isBulkSaving}
-							class="flex h-9 items-center gap-1.5 rounded-md border border-[var(--color-danger)] bg-[var(--color-surface)] px-3 text-xs font-semibold text-[var(--color-danger)] disabled:opacity-50"
-							onclick={() => void deleteSelected()}
-						>
-							<span class="icon-[lucide--trash-2] h-4 w-4" aria-hidden="true"></span>
-							Xoá
-						</button>
+						{#if canUpdate}<button
+								type="button"
+								disabled={volunteerStore.isBulkSaving}
+								class="flex h-9 items-center gap-1.5 rounded-md border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 text-xs font-semibold text-[var(--color-primary-dark)] disabled:opacity-50"
+								onclick={openBulkUpdate}
+							>
+								<span class="icon-[lucide--square-pen] h-4 w-4" aria-hidden="true"></span>
+								Cập nhật
+							</button>{/if}
+						{#if canDelete}<button
+								type="button"
+								disabled={volunteerStore.isBulkSaving}
+								class="flex h-9 items-center gap-1.5 rounded-md border border-[var(--color-danger)] bg-[var(--color-surface)] px-3 text-xs font-semibold text-[var(--color-danger)] disabled:opacity-50"
+								onclick={() => void deleteSelected()}
+							>
+								<span class="icon-[lucide--trash-2] h-4 w-4" aria-hidden="true"></span>
+								Xoá
+							</button>{/if}
 					</div>
 				{/if}
 			</div>
@@ -332,19 +337,19 @@
 							class="sticky top-0 z-10 border-b border-[var(--color-border)] bg-[var(--color-surface-muted)] text-xs font-semibold text-[var(--color-text-secondary)] shadow-[0_1px_0_var(--color-border)]"
 						>
 							<tr>
-								<th
-									class="sticky left-0 z-20 w-12 border-b border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-3 text-center"
-								>
-									<input
-										bind:this={selectAllCheckbox}
-										type="checkbox"
-										checked={allRowsSelected}
-										disabled={volunteerStore.isBulkSaving}
-										aria-label="Chọn tất cả hàng đang hiển thị"
-										class="h-4 w-4 rounded border-[var(--color-border-strong)] text-[var(--color-primary)]"
-										onchange={toggleAllRows}
-									/>
-								</th>
+								{#if canSelect}<th
+										class="sticky left-0 z-20 w-12 border-b border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-3 text-center"
+									>
+										<input
+											bind:this={selectAllCheckbox}
+											type="checkbox"
+											checked={allRowsSelected}
+											disabled={volunteerStore.isBulkSaving}
+											aria-label="Chọn tất cả hàng đang hiển thị"
+											class="h-4 w-4 rounded border-[var(--color-border-strong)] text-[var(--color-primary)]"
+											onchange={toggleAllRows}
+										/>
+									</th>{/if}
 								<th class="w-52 px-4 py-3">{@render sortHeader('full_name', 'Họ tên')}</th>
 								<th class="w-40 px-4 py-3">{@render sortHeader('dharma_name', 'Pháp danh')}</th>
 								<th class="w-36 px-4 py-3">{@render sortHeader('birth_date', 'Ngày sinh')}</th>
@@ -369,24 +374,24 @@
 									]}
 									onclick={() => router.push(`/volunteers/${encodeURIComponent(item.id)}`)}
 								>
-									<td
-										class={[
-											'sticky left-0 z-[1] w-12 px-3 py-3 text-center group-hover:bg-[var(--color-surface-muted)]',
-											selectedSet.has(item.id)
-												? 'bg-[var(--color-primary-soft)]'
-												: 'bg-[var(--color-surface)]'
-										]}
-									>
-										<input
-											type="checkbox"
-											checked={selectedSet.has(item.id)}
-											disabled={volunteerStore.isBulkSaving}
-											aria-label={`Chọn ${item.full_name}`}
-											class="h-4 w-4 rounded border-[var(--color-border-strong)] text-[var(--color-primary)]"
-											onclick={(event) => event.stopPropagation()}
-											onchange={() => toggleRow(item.id)}
-										/>
-									</td>
+									{#if canSelect}<td
+											class={[
+												'sticky left-0 z-[1] w-12 px-3 py-3 text-center group-hover:bg-[var(--color-surface-muted)]',
+												selectedSet.has(item.id)
+													? 'bg-[var(--color-primary-soft)]'
+													: 'bg-[var(--color-surface)]'
+											]}
+										>
+											<input
+												type="checkbox"
+												checked={selectedSet.has(item.id)}
+												disabled={volunteerStore.isBulkSaving}
+												aria-label={`Chọn ${item.full_name}`}
+												class="h-4 w-4 rounded border-[var(--color-border-strong)] text-[var(--color-primary)]"
+												onclick={(event) => event.stopPropagation()}
+												onchange={() => toggleRow(item.id)}
+											/>
+										</td>{/if}
 									<td class="px-4 py-3">
 										<div class="flex min-w-0 items-center gap-3">
 											{#if item.avatar_url}
@@ -463,89 +468,91 @@
 		</div>
 	</div>
 
-	<button
-		type="button"
-		class="absolute right-4 bottom-4 z-10 grid h-14 w-14 place-items-center rounded-full bg-[var(--color-primary)] text-white shadow-[var(--shadow-popover)] md:hidden"
-		aria-label="Thêm Huynh đệ công quả"
-		title="Thêm Huynh đệ công quả"
-		onclick={() => router.push('/volunteers/new')}
-	>
-		<span class="icon-[lucide--user-plus] h-6 w-6" aria-hidden="true"></span>
-	</button>
+	{#if canCreate}<button
+			type="button"
+			class="absolute right-4 bottom-4 z-10 grid h-14 w-14 place-items-center rounded-full bg-[var(--color-primary)] text-white shadow-[var(--shadow-popover)] md:hidden"
+			aria-label="Thêm Huynh đệ công quả"
+			title="Thêm Huynh đệ công quả"
+			onclick={() => router.push('/volunteers/new')}
+		>
+			<span class="icon-[lucide--user-plus] h-6 w-6" aria-hidden="true"></span>
+		</button>{/if}
 </section>
 
-<Popup
-	open={bulkUpdateOpen}
-	title={`Cập nhật ${selectedIDs.length} Huynh đệ`}
-	onClose={() => {
-		if (!volunteerStore.isBulkSaving) bulkUpdateOpen = false;
-	}}
->
-	<form id="bulk-volunteer-update" class="space-y-4" onsubmit={submitBulkUpdate}>
-		<label class="block">
-			<span class="mb-1.5 block text-sm font-medium">Trường cần cập nhật</span>
-			<select
-				bind:value={bulkField}
-				disabled={volunteerStore.isBulkSaving}
-				class="h-11 w-full rounded-md border-[var(--color-border-strong)] text-sm"
-				onchange={changeBulkField}
-			>
-				{#each bulkFields as field}
-					<option value={field.value}>{field.label}</option>
-				{/each}
-			</select>
-		</label>
-
-		<label class="block">
-			<span class="mb-1.5 block text-sm font-medium">Giá trị mới</span>
-			{#if bulkField === 'department'}
-				<DepartmentCombobox bind:value={bulkValue} />
-			{:else if bulkField === 'notes'}
-				<textarea
-					bind:value={bulkValue}
+{#if canUpdate}<Popup
+		open={bulkUpdateOpen}
+		title={`Cập nhật ${selectedIDs.length} Huynh đệ`}
+		onClose={() => {
+			if (!volunteerStore.isBulkSaving) bulkUpdateOpen = false;
+		}}
+	>
+		<form id="bulk-volunteer-update" class="space-y-4" onsubmit={submitBulkUpdate}>
+			<label class="block">
+				<span class="mb-1.5 block text-sm font-medium">Trường cần cập nhật</span>
+				<select
+					bind:value={bulkField}
 					disabled={volunteerStore.isBulkSaving}
-					rows="4"
-					class="w-full resize-y rounded-md border-[var(--color-border-strong)] text-sm"></textarea>
-			{:else}
-				<input
-					bind:value={bulkValue}
-					disabled={volunteerStore.isBulkSaving}
-					required={bulkValueRequired}
-					type={bulkField === 'arrival_date' || bulkField === 'departure_date'
-						? 'date'
-						: bulkField === 'avatar_url'
-							? 'url'
-							: bulkField === 'phone'
-								? 'tel'
-								: 'text'}
 					class="h-11 w-full rounded-md border-[var(--color-border-strong)] text-sm"
-				/>
-			{/if}
-		</label>
-	</form>
+					onchange={changeBulkField}
+				>
+					{#each bulkFields as field}
+						<option value={field.value}>{field.label}</option>
+					{/each}
+				</select>
+			</label>
 
-	{#snippet footer()}
-		<div class="grid grid-cols-2 gap-3">
-			<button
-				type="button"
-				disabled={volunteerStore.isBulkSaving}
-				class="h-11 rounded-md border border-[var(--color-border-strong)] bg-[var(--color-surface)] text-sm font-semibold disabled:opacity-50"
-				onclick={() => (bulkUpdateOpen = false)}>Huỷ</button
-			>
-			<button
-				type="submit"
-				form="bulk-volunteer-update"
-				disabled={volunteerStore.isBulkSaving || (bulkValueRequired && !bulkValue.trim())}
-				class="flex h-11 items-center justify-center gap-2 rounded-md bg-[var(--color-primary)] text-sm font-semibold text-white disabled:opacity-50"
-			>
-				{#if volunteerStore.isBulkSaving}
-					<span class="icon-[lucide--loader-circle] h-4 w-4 animate-spin" aria-hidden="true"></span>
+			<label class="block">
+				<span class="mb-1.5 block text-sm font-medium">Giá trị mới</span>
+				{#if bulkField === 'department'}
+					<DepartmentCombobox bind:value={bulkValue} />
+				{:else if bulkField === 'notes'}
+					<textarea
+						bind:value={bulkValue}
+						disabled={volunteerStore.isBulkSaving}
+						rows="4"
+						class="w-full resize-y rounded-md border-[var(--color-border-strong)] text-sm"
+					></textarea>
+				{:else}
+					<input
+						bind:value={bulkValue}
+						disabled={volunteerStore.isBulkSaving}
+						required={bulkValueRequired}
+						type={bulkField === 'arrival_date' || bulkField === 'departure_date'
+							? 'date'
+							: bulkField === 'avatar_url'
+								? 'url'
+								: bulkField === 'phone'
+									? 'tel'
+									: 'text'}
+						class="h-11 w-full rounded-md border-[var(--color-border-strong)] text-sm"
+					/>
 				{/if}
-				Cập nhật
-			</button>
-		</div>
-	{/snippet}
-</Popup>
+			</label>
+		</form>
+
+		{#snippet footer()}
+			<div class="grid grid-cols-2 gap-3">
+				<button
+					type="button"
+					disabled={volunteerStore.isBulkSaving}
+					class="h-11 rounded-md border border-[var(--color-border-strong)] bg-[var(--color-surface)] text-sm font-semibold disabled:opacity-50"
+					onclick={() => (bulkUpdateOpen = false)}>Huỷ</button
+				>
+				<button
+					type="submit"
+					form="bulk-volunteer-update"
+					disabled={volunteerStore.isBulkSaving || (bulkValueRequired && !bulkValue.trim())}
+					class="flex h-11 items-center justify-center gap-2 rounded-md bg-[var(--color-primary)] text-sm font-semibold text-white disabled:opacity-50"
+				>
+					{#if volunteerStore.isBulkSaving}
+						<span class="icon-[lucide--loader-circle] h-4 w-4 animate-spin" aria-hidden="true"
+						></span>
+					{/if}
+					Cập nhật
+				</button>
+			</div>
+		{/snippet}
+	</Popup>{/if}
 
 {#snippet sortHeader(key: VolunteerSortKey, label: string)}
 	<button

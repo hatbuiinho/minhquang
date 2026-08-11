@@ -20,8 +20,12 @@
 	import TopBar from './TopBar.svelte';
 	import VolunteerRouteModal from './VolunteerRouteModal.svelte';
 	import ChangePasswordPopup from '$lib/auth/ChangePasswordPopup.svelte';
+	import { parseRoute, routePermission } from '$lib/navigation/routes';
 
-	let route = $derived(router.current);
+	let requestedRoute = $derived(router.current);
+	let requestedPermission = $derived(routePermission(requestedRoute));
+	let routeAllowed = $derived(!requestedPermission || authStore.can(requestedPermission));
+	let route = $derived(routeAllowed ? requestedRoute : parseRoute('/volunteers'));
 	let isFormRoute = $derived(route.name === 'volunteer-new' || route.name === 'volunteer-edit');
 
 	onMount(async () => {
@@ -30,6 +34,10 @@
 	});
 
 	onDestroy(() => router.destroy());
+
+	$effect(() => {
+		if (authStore.user && !routeAllowed) router.replace('/volunteers');
+	});
 
 	$effect(() => {
 		if (route.name === 'volunteer-new') volunteerStore.prepareCreate();

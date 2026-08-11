@@ -50,13 +50,30 @@ func NewRouter(
 	protected.HandleFunc("/api/auth/profile", authHandler.UpdateProfile)
 	protected.HandleFunc("/api/auth/avatar", authHandler.UpdateAvatar)
 	protected.HandleFunc("/api/uploads/presign", uploadHandler.Presign)
-	protected.HandleFunc("/api/users", userHandler.Collection)
-	protected.HandleFunc("/api/volunteers", volunteerHandler.Collection)
-	protected.HandleFunc("/api/volunteers/bulk", volunteerHandler.Bulk)
-	protected.HandleFunc("/api/volunteers/", volunteerHandler.Item)
-	protected.HandleFunc("/api/departments", departmentHandler.Collection)
-	protected.HandleFunc("/api/departments/", departmentHandler.Item)
-	protected.HandleFunc("GET /api/volunteer-options/departments", departmentHandler.Options)
+	protected.Handle("/api/users", requireMethodPermissions(map[string]user.Permission{
+		http.MethodGet:  user.PermissionUserRead,
+		http.MethodPost: user.PermissionUserManage,
+	}, http.HandlerFunc(userHandler.Collection)))
+	protected.Handle("PUT /api/users/{id}", requirePermission(user.PermissionUserManage, http.HandlerFunc(userHandler.Item)))
+	protected.Handle("/api/volunteers", requireMethodPermissions(map[string]user.Permission{
+		http.MethodGet:  user.PermissionVolunteerRead,
+		http.MethodPost: user.PermissionVolunteerCreate,
+	}, http.HandlerFunc(volunteerHandler.Collection)))
+	protected.Handle("/api/volunteers/bulk", requireMethodPermissions(map[string]user.Permission{
+		http.MethodPatch:  user.PermissionVolunteerUpdate,
+		http.MethodDelete: user.PermissionVolunteerDelete,
+	}, http.HandlerFunc(volunteerHandler.Bulk)))
+	protected.Handle("/api/volunteers/", requireMethodPermissions(map[string]user.Permission{
+		http.MethodGet:    user.PermissionVolunteerRead,
+		http.MethodPut:    user.PermissionVolunteerUpdate,
+		http.MethodDelete: user.PermissionVolunteerDelete,
+	}, http.HandlerFunc(volunteerHandler.Item)))
+	protected.Handle("/api/departments", requireMethodPermissions(map[string]user.Permission{
+		http.MethodGet:  user.PermissionDepartmentRead,
+		http.MethodPost: user.PermissionDepartmentManage,
+	}, http.HandlerFunc(departmentHandler.Collection)))
+	protected.Handle("/api/departments/", requirePermission(user.PermissionDepartmentManage, http.HandlerFunc(departmentHandler.Item)))
+	protected.Handle("GET /api/volunteer-options/departments", requirePermission(user.PermissionDepartmentRead, http.HandlerFunc(departmentHandler.Options)))
 	protected.HandleFunc("/api/devices", deviceHandler.Collection)
 	mux.Handle("/api/", requireAuth(users, protected))
 	mux.HandleFunc("/api/app-updates/android/latest", otaHandler.AndroidLatest)

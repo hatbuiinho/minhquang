@@ -1,15 +1,19 @@
 <script lang="ts">
+	import { authStore } from '$lib/auth/auth-store.svelte';
 	import { bottomNavItems, mainRouteFor, type AppRoute } from '$lib/navigation/routes';
 	import { router } from '$lib/navigation/router.svelte';
 	let { route }: { route: AppRoute } = $props();
 	let active = $derived(mainRouteFor(route));
+	let items = $derived(
+		bottomNavItems.filter((item) => item.name !== 'users' || authStore.can('user.read'))
+	);
 </script>
 
 <nav
 	class="z-20 border-t border-[var(--color-border)] bg-[rgb(255_255_255_/_0.96)] px-2 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] backdrop-blur md:hidden"
 >
-	<div class="grid grid-cols-3 gap-1">
-		{#each bottomNavItems as item (item.name)}
+	<div class={['grid gap-1', items.length === 2 ? 'grid-cols-2' : 'grid-cols-3']}>
+		{#each items as item (item.name)}
 			<button
 				type="button"
 				class={[
